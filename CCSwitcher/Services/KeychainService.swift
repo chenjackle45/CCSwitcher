@@ -253,7 +253,7 @@ final class KeychainService: Sendable {
 
     // MARK: - App Keychain operations (Backups)
 
-    private let appBackupService = "me.xueshi.ccswitcherplus.backups"
+    private let appBackupService = "com.nowaylm.ccswitcherplus.backups"
     /// Upstream's service name. This fork reads it once to migrate, never writes
     /// to it, so an upstream install alongside this one keeps working.
     private let legacyBackupService = "me.xueshi.ccswitcher.backups"

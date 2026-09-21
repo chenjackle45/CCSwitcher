@@ -43,7 +43,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleURLTypes:
-          - CFBundleURLName: me.xueshi.ccswitcherplus
+          - CFBundleURLName: com.nowaylm.ccswitcherplus
             CFBundleURLSchemes:
               - ccswitcher
         # Sparkle: feed URL points at the always-latest release's appcast asset.
@@ -54,7 +54,7 @@ targets:
         SUPublicEDKey: N9jOZ2Xyo63FdNvkDCRiMwXFnFglOqTdmx6nw7ZwTS4=
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: me.xueshi.ccswitcherplus
+        PRODUCT_BUNDLE_IDENTIFIER: com.nowaylm.ccswitcherplus
         CODE_SIGN_ENTITLEMENTS: CCSwitcher/Resources/CCSwitcher.entitlements
         PRODUCT_NAME: CCSwitcherPlus
         MARKETING_VERSION: "1.12.0"
@@ -66,7 +66,7 @@ targets:
       path: CCSwitcher/Resources/CCSwitcher.entitlements
       properties:
         com.apple.security.application-groups:
-          - G9J8D2T6DV.me.xueshi.ccswitcherplus
+          - G9J8D2T6DV.com.nowaylm.ccswitcherplus
     dependencies:
       - target: CCSwitcherWidgetExtension
         embed: true
@@ -89,7 +89,7 @@ targets:
           EXExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: me.xueshi.ccswitcherplus.widget
+        PRODUCT_BUNDLE_IDENTIFIER: com.nowaylm.ccswitcherplus.widget
         CODE_SIGN_ENTITLEMENTS: CCSwitcherWidget/Resources/CCSwitcherWidget.entitlements
         PRODUCT_NAME: CCSwitcherWidgetExtension
         MARKETING_VERSION: "1.12.0"
@@ -106,4 +106,4 @@ targets:
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.application-groups:
-          - G9J8D2T6DV.me.xueshi.ccswitcherplus
+          - G9J8D2T6DV.com.nowaylm.ccswitcherplus
