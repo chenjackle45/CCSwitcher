@@ -1,0 +1,183 @@
+/* Navigation - Tab Bar */
+"Usage" = "用量";
+"Costs" = "費用";
+"Accounts" = "帳號";
+
+/* Main Menu */
+"Double Usage Active" = "雙倍用量生效中";
+"No account connected" = "未連結的帳號";
+"Refresh" = "重新整理";
+"Settings" = "設定";
+"Quit" = "結束";
+
+/* Settings - General */
+"General" = "通用";
+"About" = "關於";
+"Appearance" = "外觀";
+"System" = "系統";
+"Auto-refresh interval" = "自動重新整理間隔";
+"15 seconds" = "15 秒";
+"30 seconds" = "30 秒";
+"1 minute" = "1 分鐘";
+"5 minutes" = "5 分鐘";
+"10 minutes" = "10 分鐘";
+"Show account name in menu bar" = "在選單列顯示帳號名稱";
+"Show head icon in menu bar" = "在選單列顯示頭像圖示";
+"Show full email address" = "顯示完整電子郵件地址";
+"Launch at login" = "登入時啟動";
+
+/* Language */
+"Language" = "語言";
+"Automatic" = "自動";
+
+/* Settings - About */
+"Claude Code Account Switcher" = "Claude Code 帳號切換工具";
+"Version %@" = "版本 %@";
+"Checking..." = "檢查中...";
+"Check for Updates" = "檢查更新";
+"Easily switch between Claude Code accounts and monitor usage." = "輕鬆切換 Claude Code 帳號並監控用量。";
+
+/* Usage Dashboard */
+"Loading usage data..." = "正在載入用量資料...";
+"Usage data unavailable" = "用量資料不可用";
+"Today's API-Equivalent Cost" = "今日 API 等效費用";
+"Today's Activity" = "今日活動";
+"Turns" = "對話";
+"Active" = "活躍";
+"Lines" = "行數";
+"Messages you sent to Claude Code today" = "今日傳送給 Claude Code 的訊息數";
+"Estimated total time Claude worked for you today. Parallel sessions stack. Idle gaps >10 min excluded. This is an approximation based on message timestamps, not exact." = "預估 Claude 今日為你工作的總時間。同時進行的工作階段會累加，超過 10 分鐘的空閒間隔被排除。這是基於訊息時間戳的近似值，不完全精確。";
+"Estimated lines of code written by Claude via Edit/Write tools" = "預估 Claude 透過 Edit/Write 工具編寫的程式碼行數";
+"Claude Opus 4 — most capable model, best for complex tasks" = "Claude Opus 4 — 最強大的模型，適合複雜任務";
+"Claude Sonnet 4 — balanced speed and capability" = "Claude Sonnet 4 — 速度與能力的平衡";
+"Claude Haiku 4 — fastest model, best for simple tasks" = "Claude Haiku 4 — 最快速的模型，適合簡單任務";
+"Estimated API-equivalent cost of your Claude Code usage, for reference only." = "預估 Claude Code 使用的 API 等效費用，僅供參考。";
+"Token expired. Switch to this account in Claude Code to refresh." = "權杖已過期。請在 Claude Code 中切換到此帳號以重新整理。";
+"Session" = "工作階段";
+"Weekly" = "每週";
+"Limiting" = "受限中";
+"Extra usage" = "額外用量";
+"On" = "開啟";
+"Off" = "關閉";
+"Resets in %@" = "%@ 後重置";
+
+/* Cost Detail */
+"Today" = "今日";
+"Last 7 Days" = "近 7 天";
+"Last 30 Days" = "近 30 天";
+"Daily History" = "每日紀錄";
+"Total: %@" = "合計：%@";
+"No cost data available" = "暫無費用資料";
+"How We Calculate" = "計算方式";
+"Cost is computed from Claude Code session logs (~/.claude/projects/), deduplicated by request ID." = "費用根據 Claude Code 工作階段日誌（~/.claude/projects/）計算，按請求 ID 去重。";
+"Cache write = 5-min tier (1.25× base input). Cache read = 0.1× base input." = "快取寫入 = 5 分鐘級（1.25× 基礎輸入）。快取讀取 = 0.1× 基礎輸入。";
+"Official Pricing — platform.claude.com" = "官方定價 — platform.claude.com";
+"Model" = "模型";
+"Input" = "輸入";
+"Output" = "輸出";
+"Cache W" = "快取寫";
+"Cache R" = "快取讀";
+"%lld sessions" = "%lld 個工作階段";
+"%@ tokens" = "%@ token";
+
+/* Account Switcher */
+"No Accounts" = "無帳號";
+"Add your current Claude Code account to get started." = "新增目前 Claude Code 帳號以開始使用。";
+"Custom label" = "自訂標籤";
+"Edit label" = "編輯標籤";
+"Switch" = "切換";
+"Login New Account" = "登入新帳號";
+"Add Current Account" = "新增目前帳號";
+"Waiting for browser login..." = "等待瀏覽器登入...";
+"Complete the login in your browser, then return here." = "請在瀏覽器中完成登入，然後回到這裡。";
+"This will capture the currently logged-in Claude Code account." = "這將擷取目前已登入的 Claude Code 帳號。";
+"Cancel" = "取消";
+"Add Account" = "新增帳號";
+"Re-authenticate (fix stale token)" = "重新認證（修復過期權杖）";
+"Remove account" = "移除帳號";
+
+/* Usage Chart */
+"No Data" = "無資料";
+"Usage data will appear here" = "用量資料將在此顯示";
+
+/* Update Checker */
+"A new version of CCSwitcher is available!" = "CCSwitcher 有新版本可用！";
+"Version %@ is available. You are currently running version %@.\n\nWould you like to download it now?" = "版本 %1$@ 可用。你目前執行的是版本 %2$@。\n\n是否立即下載？";
+"Download & Install" = "下載並安裝";
+"View Release" = "查看發行版本";
+"Later" = "稍後";
+"Update Check Failed" = "檢查更新失敗";
+"Could not connect to GitHub. Please try again later." = "無法連線到 GitHub，請稍後再試。";
+"Rate Limit Exceeded" = "請求次數超過上限";
+"GitHub API rate limit exceeded. Please try again later." = "GitHub API 請求次數超過上限，請稍後再試。";
+"Up to date" = "已是最新";
+"No releases found on GitHub." = "GitHub 上找不到發行版本。";
+"GitHub API returned status code %lld." = "GitHub API 回傳狀態碼 %lld。";
+"You are running the latest version of CCSwitcher (%@)." = "你正在執行最新版本的 CCSwitcher（%@）。";
+"Downloading CCSwitcher.dmg..." = "正在下載 CCSwitcher.dmg...";
+"Downloading Update" = "正在下載更新";
+"Download Complete" = "下載完成";
+"The update has been downloaded and opened. Please drag the new CCSwitcher to your Applications folder to replace the old one.\n\nDo you want to quit the current app now?" = "更新已下載並開啟。請將新的 CCSwitcher 拖入應用程式資料夾以替換舊版本。\n\n是否立即結束目前的 App？";
+"Quit CCSwitcher" = "結束 CCSwitcher";
+"Download Failed" = "下載失敗";
+"OK" = "好";
+
+/* AppState Errors */
+"Claude CLI not found" = "找不到 Claude CLI";
+"Not logged in to Claude. Run 'claude auth login' first." = "未登入 Claude。請先執行 'claude auth login'。";
+"Account already exists" = "帳號已存在";
+"Could not capture auth token from keychain" = "無法從鑰匙圈取得認證權杖";
+"Login did not complete" = "登入未完成";
+"Account already exists - credentials refreshed" = "帳號已存在 - 憑證已重新整理";
+"Could not capture credentials" = "無法取得憑證";
+"No stored credentials for %@. Use re-authenticate to fix." = "沒有 %@ 的儲存憑證。請使用重新認證來修復。";
+"Logged in as %@, but expected %@. Credentials not updated." = "登入帳號為 %1$@，但預期為 %2$@。憑證未更新。";
+"Claude CLI is authenticating via %@ instead of a stored claude.ai login, so it reports no account. Unset ANTHROPIC_AUTH_TOKEN / CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_PROFILE and remove any apiKeyHelper, then try again." = "Claude CLI 正在透過 %@ 進行認證，而不是使用已儲存的 claude.ai 登入，因此不會報告帳號。請取消 ANTHROPIC_AUTH_TOKEN / CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_PROFILE，並移除所有 apiKeyHelper，然後再試一次。";
+"Switched to %@, but the Claude CLI is authenticating via %@ instead of the stored login, so it will not use this account." = "已切換到 %1$@，但 Claude CLI 正在透過 %2$@ 認證，而不是使用已儲存的登入，因此不會使用此帳號。";
+"Token expired. Switch to refresh." = "權杖已過期。切換以重新整理。";
+"Token expired. Switch to this account to refresh." = "權杖已過期。切換到此帳號以重新整理。";
+"API Rate Limited. Try again later." = "API 請求次數受限。請稍後再試。";
+"Could not fetch usage: %@" = "無法取得用量：%@";
+
+/* Promo */
+"%@ - %@ (Weekdays) & Weekends" = "%1$@ - %2$@（工作日）及週末";
+"Double limits: 2 PM - 8 AM ET & Weekends" = "雙倍額度：美東時間下午 2 點 - 上午 8 點及週末";
+
+/* Menu Bar */
+"Menu bar" = "選單列";
+"Menu bar modules" = "選單列模組";
+"Drag to reorder, toggle to enable. Disabled modules sit at the bottom." = "拖曳排序，勾選啟用。未啟用的模組排在下方。";
+"Preview" = "預覽";
+"Customize limit bar colors" = "自訂額度條顏色";
+"Warns when this much quota or less is left. At 30%, bars turn at 70% used." = "剩餘額度低於這個比例時變為警告色。設為 30% 表示用量達到 70% 時變色。";
+"Limit bars" = "額度條";
+"Session bar color" = "工作階段條顏色";
+"Weekly bar color" = "每週條顏色";
+"Low remaining color" = "低剩餘額度顏色";
+"Low remaining threshold" = "低剩餘額度門檻";
+"Account name" = "帳號名稱";
+"Session usage (5h)" = "工作階段用量（5 小時）";
+"Weekly usage (7d)" = "每週用量（7 天）";
+"Daily cost" = "今日花費";
+"Session reset countdown" = "工作階段重置倒數";
+"Weekly reset countdown" = "每週重置倒數";
+"Menu Bar" = "選單列";
+"Account display" = "帳號顯示";
+"Session — usage vs time (5h)" = "工作階段 — 用量 vs 時間（5 小時）";
+"Weekly — usage vs time (7d)" = "每週 — 用量 vs 時間（7 天）";
+"The vertical line marks time elapsed in the window; fill past it means you're using faster than the clock." = "直線 = 時間進度（該時段已過去多少）；填充超過它 = 你用得比時間快。";
+"Claude Fable 5 — most powerful model, the new flagship tier" = "Claude Fable 5 — 最強大的模型，全新旗艦層級";
+
+/* Auto-switch & rate-limit resilience */
+"Waiting for usage data..." = "正在等待用量資料...";
+"No active subscription on this account (OAuth not allowed)." = "該帳號沒有有效訂閱（不允許 OAuth）。";
+"Session expired. Re-authenticate (↻) to fix." = "工作階段已過期。請重新認證（↻）來修復。";
+"Auto-switch" = "自動切換";
+"Switch account before hitting the limit" = "在達到限額前切換帳號";
+"Switch at" = "切換門檻";
+"When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to the account with the most quota left. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "當活躍帳號的 5 小時或每週用量達到此程度時，CCSwitcher 會切換到剩餘額度最多的帳號。每次重新整理時檢查；5 分鐘冷卻時間可防止頻繁來回切換。";
+"Updated %@ ago" = "%@ 前更新";
+"Could not save the refreshed sign-in; will retry automatically." = "無法儲存重新整理後的登入憑證；會自動再試。";
+"Credential storage is temporarily unavailable. Try again shortly." = "憑證儲存暫時不可用。請稍後再試。";
+"More apps at xueshi.dev" = "作者的其他 App：xueshi.dev";
+"© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";

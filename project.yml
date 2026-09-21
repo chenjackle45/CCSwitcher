@@ -9,14 +9,10 @@ options:
   knownRegions:
     - en
     - zh-Hans
+    - zh-Hant
     - ja
     - de
     - fr
-
-packages:
-  Sparkle:
-    url: https://github.com/sparkle-project/Sparkle
-    from: 2.9.0
 
 settings:
   base:
@@ -46,12 +42,6 @@ targets:
           - CFBundleURLName: com.nowaylm.ccswitcherplus
             CFBundleURLSchemes:
               - ccswitcher
-        # Sparkle: feed URL points at the always-latest release's appcast asset.
-        # CI uploads `appcast.xml` to each release alongside the DMG.
-        SUFeedURL: https://github.com/XueshiQiao/CCSwitcher/releases/latest/download/appcast.xml
-        # Public EdDSA key. The matching private key is the `SPARKLE_EDDSA_KEY`
-        # GitHub secret used by CI to sign each DMG.
-        SUPublicEDKey: N9jOZ2Xyo63FdNvkDCRiMwXFnFglOqTdmx6nw7ZwTS4=
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nowaylm.ccswitcherplus
@@ -71,7 +61,6 @@ targets:
       - target: CCSwitcherWidgetExtension
         embed: true
         codeSign: true
-      - package: Sparkle
 
   CCSwitcherWidgetExtension:
     type: extensionkit-extension

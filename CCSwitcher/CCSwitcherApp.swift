@@ -21,7 +21,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct CCSwitcherApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState()
-    @StateObject private var updateChecker = UpdateChecker()
     @StateObject private var menuBarConfig = MenuBarConfig.shared
     @AppStorage("refreshInterval") private var refreshInterval: Double = 300
     @AppStorage("appLanguage") private var appLanguage = "auto"
@@ -37,10 +36,6 @@ struct CCSwitcherApp: App {
                 .onAppear {
                     guard !didBootstrap else { return }
                     didBootstrap = true
-                    // Sparkle's SPUStandardUpdaterController(startingUpdater: true)
-                    // schedules its own background update checks; no need to
-                    // call checkForUpdates here.
-                    _ = updateChecker
                     statusItemController.install(
                         appState: appState,
                         config: menuBarConfig,
@@ -62,7 +57,6 @@ struct CCSwitcherApp: App {
         Settings {
             SettingsView()
                 .environmentObject(appState)
-                .environmentObject(updateChecker)
                 .environmentObject(menuBarConfig)
                 .environment(\.locale, currentLocale)
         }

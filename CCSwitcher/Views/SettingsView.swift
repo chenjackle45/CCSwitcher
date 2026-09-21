@@ -4,7 +4,6 @@ import ServiceManagement
 /// Settings window for configuring the app.
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var updateChecker: UpdateChecker
     @EnvironmentObject private var menuBarConfig: MenuBarConfig
     @AppStorage("refreshInterval") private var refreshInterval: Double = 300
     @AppStorage("showFullEmail") private var showFullEmail = false
@@ -88,6 +87,7 @@ struct SettingsView: View {
                     Divider()
                     Text("English").tag("en")
                     Text("中文（简体）").tag("zh-Hans")
+                    Text("中文（繁體）").tag("zh-Hant")
                     Text("日本語").tag("ja")
                     Text("Deutsch").tag("de")
                     Text("Français").tag("fr")
@@ -169,12 +169,6 @@ struct SettingsView: View {
             Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
-
-            Button(updateChecker.isChecking ? "Checking..." : "Check for Updates") {
-                updateChecker.checkForUpdates(manual: true)
-            }
-            .disabled(updateChecker.isChecking)
-            .padding(.top, 4)
 
             Spacer()
 

@@ -96,6 +96,13 @@ actor SessionParseCacheV2 {
     private var files: [String: CachedFileV2] = [:]
     private var pricingMeta: PricingMeta = .init(source: "unknown", fetchedAt: nil)
     private var loaded = false
+    // The cache is a pure derivative of the JSONL files, so it does not need
+    // to hit disk every refresh. Changes accumulate in `dirty` across refreshes
+    // and are written at most once per `minSaveInterval`; the first change
+    // after launch is written immediately so a fresh rebuild is not lost.
+    private var dirty = false
+    private var lastSuccessfulSave: Date?
+    private static let minSaveInterval: TimeInterval = 15 * 60
 
     private init() {
         self.claudeProjectsDir = NSHomeDirectory() + "/.claude/projects"
@@ -123,6 +130,7 @@ actor SessionParseCacheV2 {
         await PricingService.shared.reloadIfFreshChanged()
         // Capture the current pricing source for the envelope stamp.
         let src = await PricingService.shared.currentSource()
+        let previousPricingSource = pricingMeta.source
         pricingMeta = stampFor(source: src)
         // Trigger a TTL'd background refresh of the LiteLLM JSON. No-op if fresh.
         PricingService.shared.refreshInBackground()
@@ -150,7 +158,10 @@ actor SessionParseCacheV2 {
             + "pricing=\(pricingMeta.source)"
         )
 
-        save()
+        if !result.updates.isEmpty || evicted > 0 || pricingMeta.source != previousPricingSource {
+            dirty = true
+        }
+        saveIfDue()
     }
 
     /// Per-day, per-model cost summary. Applies global max-output-wins dedup
@@ -389,7 +400,19 @@ actor SessionParseCacheV2 {
         log.info("LOAD bytes=\(data.count) entries=\(files.count) pricing=\(envelope.pricing.source)")
     }
 
-    private func save() {
+    private func saveIfDue() {
+        guard dirty else { return }
+        if let last = lastSuccessfulSave, Date().timeIntervalSince(last) < Self.minSaveInterval {
+            log.debug("SAVE deferred: dirty, last save \(Int(Date().timeIntervalSince(last)))s ago")
+            return
+        }
+        if save() {
+            dirty = false
+            lastSuccessfulSave = Date()
+        }
+    }
+
+    private func save() -> Bool {
         let envelope = CacheEnvelopeV2(
             version: Self.currentVersion,
             lastUpdated: Date(),
@@ -400,13 +423,15 @@ actor SessionParseCacheV2 {
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(envelope) else {
             log.error("SAVE failed to encode")
-            return
+            return false
         }
         do {
             try data.write(to: cacheURL, options: .atomic)
             log.info("SAVE bytes=\(data.count) entries=\(files.count)")
+            return true
         } catch {
             log.error("SAVE failed: \(error.localizedDescription)")
+            return false
         }
     }
 

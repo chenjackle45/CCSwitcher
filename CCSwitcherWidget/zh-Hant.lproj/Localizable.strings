@@ -1,0 +1,21 @@
+/* Widget Configuration */
+"Monitor your Claude Code account usage, costs, and activity." = "監控 Claude Code 帳號用量、費用和活動。";
+"CCSwitcher Rings" = "CCSwitcher 圓環";
+"Session and weekly usage shown as circular progress rings." = "以圓環進度顯示工作階段和每週用量。";
+
+/* Widget Views */
+"Open CCSwitcher" = "開啟 CCSwitcher";
+"to load data" = "以載入資料";
+"today" = "今日";
+"No accounts" = "無帳號";
+"Error" = "錯誤";
+"Session" = "工作階段";
+"Weekly" = "每週";
+"Extra usage" = "額外用量";
+"On" = "開啟";
+"Off" = "關閉";
+"ACTIVE" = "活躍";
+"Turns" = "對話";
+"Active" = "活躍";
+"Lines" = "行數";
+"Cost" = "費用";
