@@ -388,12 +388,15 @@ final class KeychainService: Sendable {
 
         do {
             try process.run()
+            // Drain the pipe before waiting. `security` can emit more than the
+            // pipe buffer holds (16 KB) and then blocks in write() until someone
+            // reads; waiting first deadlocks because the child never exits.
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
             guard process.terminationStatus == 0 else {
                 log.debug("[runSecurity] Exit \(process.terminationStatus) for: security \(args.prefix(3).joined(separator: " "))...")
                 return nil
             }
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
             let output = String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             return output?.isEmpty == true ? nil : output

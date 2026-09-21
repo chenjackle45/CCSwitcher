@@ -672,9 +672,11 @@ final class ClaudeService: @unchecked Sendable {
 
                 do {
                     try process.run()
-                    process.waitUntilExit()
-
+                    // Drain before waiting, same reason as
+                    // KeychainService.runSecurity: a child blocked writing more
+                    // than the pipe buffer never exits.
                     let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    process.waitUntilExit()
                     let output = String(data: data, encoding: .utf8) ?? ""
 
                     if process.terminationStatus == 0 {
