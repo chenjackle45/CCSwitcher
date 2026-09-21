@@ -4,11 +4,8 @@ import SwiftUI
 struct AccountSwitcherView: View {
     @EnvironmentObject private var appState: AppState
     @AppStorage("showFullEmail") private var showFullEmail = false
-    @State private var showingAddConfirm = false
     @State private var editingAccountId: UUID?
     @State private var editingLabel = ""
-
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,7 +40,7 @@ struct AccountSwitcherView: View {
             Text("No Accounts")
                 .font(.headline)
 
-            Text("Add your current Claude Code account to get started.")
+            Text("Sign in to a Claude Code account to get started.")
                 .font(.caption)
                 .foregroundStyle(.textSecondary)
                 .multilineTextAlignment(.center)
@@ -148,7 +145,7 @@ struct AccountSwitcherView: View {
             .help("Re-authenticate (fix stale token)")
 
             Button {
-                appState.removeAccount(account)
+                Task { await appState.removeAccount(account) }
             } label: {
                 Image(systemName: "trash")
                     .font(.caption)
@@ -196,37 +193,6 @@ struct AccountSwitcherView: View {
                     .strokeBorder(.cardBorder, lineWidth: 1)
                     .shadow(color: AppStyle.cardShadowColor, radius: AppStyle.cardShadowRadius, x: 0, y: AppStyle.cardShadowY)
             )
-        } else if showingAddConfirm {
-            // Inline confirmation for "Add Current"
-            VStack(spacing: 8) {
-                Text("This will capture the currently logged-in Claude Code account.")
-                    .font(.caption)
-                    .foregroundStyle(.textSecondary)
-                    .multilineTextAlignment(.center)
-
-                HStack(spacing: 12) {
-                    Button("Cancel") {
-                        withAnimation { showingAddConfirm = false }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-
-                    Button("Add Account") {
-                        showingAddConfirm = false
-                        Task { await appState.addAccount() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.brand)
-                    .controlSize(.small)
-                }
-            }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(.cardFillStrong)
-                    .strokeBorder(.cardBorder, lineWidth: 1)
-                    .shadow(color: AppStyle.cardShadowColor, radius: AppStyle.cardShadowRadius, x: 0, y: AppStyle.cardShadowY)
-            )
         } else {
             VStack(spacing: 8) {
                 // Primary: Login new account via browser
@@ -242,26 +208,6 @@ struct AccountSwitcherView: View {
                 }
                 .buttonStyle(.plain)
 
-                // Secondary: Capture already-logged-in account
-                Button {
-                    withAnimation { showingAddConfirm = true }
-                } label: {
-                    Label("Add Current Account", systemImage: "plus.circle")
-                        .font(.caption)
-                        .foregroundStyle(.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(
-                                    colorScheme == .dark
-                                        ? Color.gray.opacity(0.4)
-                                        : Color.white.opacity(0.22),
-                                    lineWidth: 1
-                                )
-                        )
-                }
-                .buttonStyle(.plain)
             }
         }
     }

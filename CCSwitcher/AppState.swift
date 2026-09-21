@@ -67,14 +67,29 @@ final class AppState: ObservableObject {
     /// account already exposes; summing it answers "how much have all my
     /// accounts consumed this week?" at a glance.
     var weeklyConsumptionSummary: WeeklyConsumptionSummary {
-        let samples = accountUsage.values.compactMap { $0.sevenDay?.utilization }
-        guard !samples.isEmpty else {
-            return .empty
+        let now = Date()
+        // Only samples describing the CURRENT weekly window count. Accounts are
+        // polled round-robin, so a retained reading can outlive the window it
+        // measured — adding it to the total reports quota that has since been
+        // given back. A reading with no parseable reset is treated the same way:
+        // its window cannot be established, so it cannot be shown as current.
+        let samples: [Double] = accounts.compactMap { account in
+            guard let window = accountUsage[account.id]?.sevenDay,
+                  let utilization = window.utilization,
+                  accountUsageSampledAt[account.id] != nil,
+                  let resetsAt = window.resetsAtDate,
+                  resetsAt > now else {
+                return nil
+            }
+            return utilization
         }
         let total = samples.reduce(0, +)
+        // The denominator stays the account count even with zero usable samples:
+        // "0/8 in this cycle" is the honest reading, and hiding the badge (what
+        // the empty summary did) made a stale card look like a fresh one.
         return WeeklyConsumptionSummary(
             totalUtilization: total,
-            averageUtilization: total / Double(samples.count),
+            averageUtilization: samples.isEmpty ? 0 : total / Double(samples.count),
             sampledAccountCount: samples.count,
             accountCount: accounts.count
         )
@@ -91,6 +106,13 @@ final class AppState: ObservableObject {
     /// neither usage attribution nor a backup has to trust `~/.claude.json`'s
     /// identity block — which any running Claude Code session can rewrite.
     private let credentialAnchor = CredentialAnchorStore()
+
+    /// Serializes every operation that touches live credentials. See
+    /// `CredentialGate` for why the per-operation flags were not enough.
+    private let credentialGate = CredentialGate()
+
+    /// Which accounts auto-switch may switch to, and in what order.
+    private let autoSwitchConfig = AutoSwitchConfig.shared
 
     private let accountsKey = "com.ccswitcher.accounts"
     private var refreshTimer: Timer?
@@ -123,7 +145,11 @@ final class AppState: ObservableObject {
     /// responsive, so without this a second switch — a user click during an
     /// auto-switch verification, or vice versa — could interleave keychain and
     /// ~/.claude.json writes with the first.
-    private var isSwitching = false
+    /// True from the moment a switch is requested — including while it waits for
+    /// the gate — so the UI can say "working" instead of looking dead. Separate
+    /// from `isLoading`, which belongs to the refresh cycle: sharing one flag
+    /// meant a refresh finishing mid-switch turned the spinner off.
+    @Published private(set) var isSwitching = false
 
     // MARK: - Auto-switch
 
@@ -193,21 +219,33 @@ final class AppState: ObservableObject {
         claudeAvailable = await claudeService.isClaudeAvailable()
         log.info("[refresh] Claude available: \(self.claudeAvailable)")
 
-        if claudeAvailable {
-            do {
-                let status = try await claudeService.getAuthStatus()
-                updateActiveAccount(from: status)
-            } catch {
-                log.error("[refresh] getAuthStatus failed: \(error.localizedDescription)")
-                errorMessage = error.localizedDescription
+        // Everything that reads or writes live credentials runs under the gate.
+        // The parsing further down deliberately does not: a switch must never
+        // have to wait for a filesystem scan of every session log.
+        await credentialGate.withGate("refresh") {
+            // Resolved ONCE for the whole cycle and handed down. Each of the
+            // three steps below used to resolve it for itself: three `security`
+            // subprocesses and three full parses of ~/.claude.json per refresh,
+            // and — because resolving also PERSISTS state transitions — three
+            // chances for the cycle to act on three different answers.
+            let liveOwner = await liveCredentialOwner()
+
+            if claudeAvailable {
+                do {
+                    let status = try await claudeService.getAuthStatus()
+                    updateActiveAccount(from: status, liveOwner: liveOwner)
+                } catch {
+                    log.error("[refresh] getAuthStatus failed: \(error.localizedDescription)")
+                    errorMessage = error.localizedDescription
+                }
             }
+
+            // Passive health check: reads the backup store, resolves nothing.
+            await diagnoseTokenHealth(liveOwner: liveOwner)
+
+            // Fetch usage limits for all accounts
+            await fetchAllAccountUsage(liveOwner: liveOwner)
         }
-
-        // Passive token health check (no CLI calls, keychain reads only)
-        diagnoseTokenHealth()
-
-        // Fetch usage limits for all accounts
-        await fetchAllAccountUsage()
         lastUsageRefresh = Date()
 
         usageSummary = statsParser.getUsageSummary()
@@ -253,9 +291,9 @@ final class AppState: ObservableObject {
     /// naming an account is not evidence that the token beside it is that
     /// account's, and acting as though it were is what filed one account's
     /// usage on another's card and overwrote its stored token.
-    private func liveCredentialOwner() -> LiveCredentialOwner {
-        let accessToken = keychain.readClaudeToken().flatMap(ClaudeService.extractAccessToken(from:))
-        let claimedEmail = keychain.readOAuthAccount()?["emailAddress"]?.value as? String
+    private func liveCredentialOwner() async -> LiveCredentialOwner {
+        let accessToken = await keychain.readClaudeTokenAsync().flatMap(ClaudeService.extractAccessToken(from:))
+        let claimedEmail = await keychain.readOAuthAccountEmailAsync()
         let claimedId = claimedEmail.flatMap { email in accounts.first(where: { $0.email == email })?.id }
         return credentialAnchor.resolveOwner(accessToken: accessToken, claimedAccountId: claimedId)
     }
@@ -263,8 +301,8 @@ final class AppState: ObservableObject {
     /// Record that the live credential is `accountId`'s. Only for the moments
     /// CCSwitcher established that itself — a completed switch, login, re-auth
     /// or capture — never on the identity block's say-so.
-    private func anchorLiveCredential(to accountId: UUID) {
-        guard let tokenJSON = keychain.readClaudeToken(),
+    private func anchorLiveCredential(to accountId: UUID) async {
+        guard let tokenJSON = await keychain.readClaudeTokenAsync(),
               let accessToken = ClaudeService.extractAccessToken(from: tokenJSON) else { return }
         credentialAnchor.anchor(accountId: accountId, accessToken: accessToken)
     }
@@ -272,91 +310,77 @@ final class AppState: ObservableObject {
     /// Back up the live credential as `account`'s, but only when it really is.
     /// Storing it otherwise overwrites one account's saved token with another's,
     /// which survives every later switch and silently spends the wrong quota.
+    ///
+    /// Deliberately does NOT anchor afterwards: a successful backup is not
+    /// evidence of a new pairing, and re-anchoring here would clear a known
+    /// desync the moment the identity block happened to agree again.
     @discardableResult
-    private func captureLiveCredential(as account: Account) -> Bool {
-        guard liveCredentialOwner().credentialAccountId == account.id else {
+    private func captureLiveCredential(as account: Account) async -> Bool {
+        guard await liveCredentialOwner().credentialAccountId == account.id else {
             log.warning("[capture] Live credential is not confirmed to be \(account.email)'s; skipping backup rather than storing it under the wrong account")
             return false
         }
-        let captured = claudeService.captureCurrentCredentials(forAccountId: account.id.uuidString)
-        if captured { anchorLiveCredential(to: account.id) }
+        // The token is this account's; the identity block travelling with it
+        // must be too, or the backup pairs one account's credential with
+        // another's identity.
+        let claimedEmail = await keychain.readOAuthAccountEmailAsync()
+        guard claimedEmail == account.email else {
+            log.warning("[capture] Identity block names \(claimedEmail ?? "nobody"), not \(account.email); skipping backup")
+            return false
+        }
+        return await claudeService.captureCurrentCredentials(forAccountId: account.id.uuidString)
+    }
+
+    /// Capture + anchor after CCSwitcher itself completed a login for `account`.
+    /// The login is the proof of ownership, so this is one of the only paths
+    /// allowed to establish a pairing — but the credential it just minted must
+    /// still carry `expectedEmail`, or what completed was a login to someone else.
+    @discardableResult
+    private func captureAfterLogin(as account: Account, expectedEmail: String) async -> Bool {
+        let claimedEmail = await keychain.readOAuthAccountEmailAsync()
+        guard claimedEmail == expectedEmail else {
+            log.error("[capture] Post-login identity block names \(claimedEmail ?? "nobody"), expected \(expectedEmail); not capturing")
+            return false
+        }
+        let captured = await claudeService.captureCurrentCredentials(forAccountId: account.id.uuidString)
+        if captured { await anchorLiveCredential(to: account.id) }
         return captured
     }
 
-    // MARK: - Account Management
+    /// Backup lookups go through the keychain's off-main entry point; the
+    /// decode happens here because `AccountBackup` is not `Sendable`.
+    private enum BackupLookup {
+        case found(AccountBackup)
+        case missing
+        case storeUnavailable
+    }
 
-    func addAccount() async {
-        log.info("[addAccount] Starting add current account flow...")
-        guard claudeAvailable else {
-            errorMessage = String(localized: "Claude CLI not found", bundle: L10n.bundle)
-            log.error("[addAccount] Aborted: Claude CLI not found")
-            return
-        }
-
-        do {
-            let status = try await claudeService.getAuthStatus()
-            guard status.loggedIn else {
-                errorMessage = String(localized: "Not logged in to Claude. Run 'claude auth login' first.", bundle: L10n.bundle)
-                log.error("[addAccount] Aborted: not logged in")
-                return
+    private func lookupBackup(forAccountId accountId: String) async -> BackupLookup {
+        switch await keychain.lookupAccountBackupDataAsync(forAccountId: accountId) {
+        case .found(let data):
+            guard let decoded = try? JSONDecoder().decode(AccountBackup.self, from: data) else {
+                return .storeUnavailable
             }
-            guard let email = status.email else {
-                errorMessage = shadowedIdentityMessage(status)
-                log.error("[addAccount] Aborted: CLI reports authMethod=\(status.authMethod ?? "nil") without an account identity")
-                return
-            }
-            log.info("[addAccount] Current auth: logged in, sub=\(status.subscriptionType ?? "nil")")
-
-            if accounts.contains(where: { $0.email == email }) {
-                errorMessage = String(localized: "Account already exists", bundle: L10n.bundle)
-                log.warning("[addAccount] Aborted: duplicate account")
-                return
-            }
-
-            // The CLI reports the identity block, which can name an account the
-            // live token does not belong to. Adding on that word would file
-            // another account's credential under a brand-new entry.
-            if let ownerId = liveCredentialOwner().credentialAccountId,
-               let owner = accounts.first(where: { $0.id == ownerId }), owner.email != email {
-                errorMessage = String(localized: "Claude reports \(email), but the stored sign-in still belongs to \(owner.email). Switch accounts once, then add.", bundle: L10n.bundle)
-                log.error("[addAccount] Aborted: live credential belongs to \(owner.email), not \(email)")
-                return
-            }
-
-            var account = Account(
-                email: email,
-                displayName: status.orgName ?? email,
-                provider: .claudeCode,
-                orgName: status.orgName,
-                subscriptionType: status.subscriptionType,
-                isActive: accounts.isEmpty
-            )
-            log.info("[addAccount] Created account model, id=\(account.id)")
-
-            log.info("[addAccount] Capturing token from keychain...")
-            let captured = claudeService.captureCurrentCredentials(forAccountId: account.id.uuidString)
-            if !captured {
-                errorMessage = String(localized: "Could not capture auth token from keychain", bundle: L10n.bundle)
-                log.error("[addAccount] Token capture failed!")
-                return
-            }
-            log.info("[addAccount] Token captured successfully")
-            anchorLiveCredential(to: account.id)
-
-            if accounts.isEmpty {
-                account.isActive = true
-                activeAccount = account
-                log.info("[addAccount] First account, setting as active")
-            }
-
-            accounts.append(account)
-            saveAccounts()
-            log.info("[addAccount] Account saved. Total accounts: \(self.accounts.count)")
-        } catch {
-            errorMessage = error.localizedDescription
-            log.error("[addAccount] Error: \(error.localizedDescription)")
+            return .found(decoded)
+        case .missing:
+            return .missing
+        case .storeUnavailable:
+            return .storeUnavailable
         }
     }
+
+    /// For call sites where "missing" and "unavailable" mean the same thing.
+    private func backup(forAccountId accountId: String) async -> AccountBackup? {
+        if case .found(let backup) = await lookupBackup(forAccountId: accountId) { return backup }
+        return nil
+    }
+
+    private func saveBackup(_ backup: AccountBackup, forAccountId accountId: String) async -> Bool {
+        guard let data = try? JSONEncoder().encode(backup) else { return false }
+        return await keychain.saveAccountBackupDataAsync(data, forAccountId: accountId)
+    }
+
+    // MARK: - Account Management
 
     func loginNewAccount() async {
         log.info("[loginNewAccount] ===== Starting login new account flow =====")
@@ -365,10 +389,8 @@ final class AppState: ObservableObject {
             log.error("[loginNewAccount] Aborted: Claude CLI not found")
             return
         }
-        // One credential mutation at a time (same guard as switchTo). A login
-        // entering while a switch is suspended mid-swap would back up the
-        // WRONG live credential under the old active account's id — quietly
-        // destroying that account's usable backup. Also blocks double-clicks.
+        // A switch in flight or another login means the user is already in the
+        // middle of a credential change: stand down rather than queue.
         guard !isSwitching, !isLoggingIn else {
             log.warning("[loginNewAccount] Skipped: a switch or another login is in progress")
             return
@@ -377,11 +399,25 @@ final class AppState: ObservableObject {
         isLoggingIn = true
         errorMessage = nil
 
+        let shouldRefresh = await credentialGate.withGate("login") {
+            await performLoginNewAccount()
+        }
+        isLoggingIn = false
+
+        if shouldRefresh {
+            await refresh()
+            log.info("[loginNewAccount] ===== Login completed =====")
+        }
+    }
+
+    /// The login itself. **The caller must hold `credentialGate`** and owns the
+    /// follow-up `refresh()`. Returns whether the caller should refresh.
+    private func performLoginNewAccount() async -> Bool {
         do {
             // 1. Back up current account (token + oauthAccount) before login overwrites them
             if let current = activeAccount {
                 log.info("[loginNewAccount] Step 1: Backing up current account (\(current.email))...")
-                let backed = captureLiveCredential(as: current)
+                let backed = await captureLiveCredential(as: current)
                 log.info("[loginNewAccount] Step 1: Backup result: \(backed)")
             } else {
                 log.info("[loginNewAccount] Step 1: No active account, skipping backup")
@@ -398,14 +434,12 @@ final class AppState: ObservableObject {
             guard status.loggedIn else {
                 errorMessage = String(localized: "Login did not complete", bundle: L10n.bundle)
                 log.error("[loginNewAccount] Step 3: Not logged in after login!")
-                isLoggingIn = false
-                return
+                return false
             }
             guard let email = status.email else {
                 errorMessage = shadowedIdentityMessage(status)
                 log.error("[loginNewAccount] Step 3: CLI reports authMethod=\(status.authMethod ?? "nil") without an account identity")
-                isLoggingIn = false
-                return
+                return false
             }
             log.info("[loginNewAccount] Step 3: Logged in as \(email)")
 
@@ -420,9 +454,8 @@ final class AppState: ObservableObject {
                 log.info("[loginNewAccount] Step 4: Account already exists, refreshing backup and marking it active")
                 // A just-completed login is itself the proof of ownership — the
                 // CLI minted this credential for this account — so capture and
-                // re-anchor directly instead of asking the (now superseded) anchor.
-                let captured = claudeService.captureCurrentCredentials(forAccountId: accounts[existing].id.uuidString)
-                if captured { anchorLiveCredential(to: accounts[existing].id) }
+                // anchor directly instead of asking the (now superseded) anchor.
+                let captured = await captureAfterLogin(as: accounts[existing], expectedEmail: email)
                 for i in accounts.indices {
                     accounts[i].isActive = (i == existing)
                 }
@@ -438,8 +471,7 @@ final class AppState: ObservableObject {
                     log.error("[loginNewAccount] Step 4: Backup capture FAILED for existing account")
                     errorMessage = String(localized: "Could not capture credentials", bundle: L10n.bundle)
                 }
-                isLoggingIn = false
-                return
+                return false
             }
 
             // 5. Create new account and capture credentials (token + oauthAccount)
@@ -453,14 +485,12 @@ final class AppState: ObservableObject {
             )
             log.info("[loginNewAccount] Step 5: Created account, id=\(account.id)")
 
-            let captured = claudeService.captureCurrentCredentials(forAccountId: account.id.uuidString)
+            let captured = await captureAfterLogin(as: account, expectedEmail: email)
             if !captured {
                 errorMessage = String(localized: "Could not capture credentials", bundle: L10n.bundle)
                 log.error("[loginNewAccount] Step 5: Capture failed!")
-                isLoggingIn = false
-                return
+                return false
             }
-            anchorLiveCredential(to: account.id)
 
             // 6. Mark new account as active
             for i in accounts.indices {
@@ -474,13 +504,11 @@ final class AppState: ObservableObject {
             saveAccounts()
             log.info("[loginNewAccount] Step 6: New account active. Total: \(self.accounts.count)")
 
-            isLoggingIn = false
-            await refresh()
-            log.info("[loginNewAccount] ===== Login completed =====")
+            return true
         } catch {
             errorMessage = error.localizedDescription
-            isLoggingIn = false
             log.error("[loginNewAccount] Error: \(error.localizedDescription)")
+            return false
         }
     }
 
@@ -496,44 +524,149 @@ final class AppState: ObservableObject {
         log.info("[updateAccountLabel] Set label for \(account.email): \(trimmed ?? "nil")")
     }
 
-    func removeAccount(_ account: Account) {
+    func removeAccount(_ account: Account) async {
         log.info("[removeAccount] Removing account \(account.id)")
-        keychain.removeAccountBackup(forAccountId: account.id.uuidString)
-        credentialAnchor.forget(accountId: account.id)
-        accounts.removeAll { $0.id == account.id }
-        // Drop every per-account cache too, or a re-added account inherits the
-        // removed one's readings, error banner and rate-limit park.
-        accountUsage[account.id] = nil
-        accountUsageSampledAt[account.id] = nil
-        accountUsageErrors[account.id] = nil
-        usageRetryNotBefore[account.id] = nil
-        if account.isActive, let first = accounts.first {
-            accounts[accounts.startIndex].isActive = true
-            activeAccount = accounts.first
-            log.info("[removeAccount] Removed active account, switching to first remaining")
-            Task { await switchTo(first) }
-        }
-        saveAccounts()
-        log.info("[removeAccount] Done. Remaining accounts: \(self.accounts.count)")
-    }
-
-    func switchTo(_ account: Account) async {
-        guard let currentActive = activeAccount, currentActive.id != account.id else {
-            log.info("[switchTo] No switch needed (same account or no active account)")
-            return
-        }
-
-        log.info("[switchTo] ===== Switching from \(currentActive.email) to \(account.email) =====")
-
-        // One credential mutation at a time: a switch already in flight (its
-        // awaits leave the main actor free) or a running login must finish
-        // before another switch may touch the keychain and ~/.claude.json.
+        // Same stand-down rule the other credential operations use: a removal
+        // clicked during a switch or a login would otherwise queue behind it and
+        // then act on what the list looked like before.
         guard !isSwitching, !isLoggingIn else {
-            log.warning("[switchTo] Skipped: another switch or a login is in progress")
+            log.warning("[removeAccount] Skipped: a switch or a login is in progress")
+            errorMessage = String(localized: "A switch or a login is in progress; try removing the account again in a moment.", bundle: L10n.bundle)
             return
         }
         isSwitching = true
         defer { isSwitching = false }
+
+        // Removing drops the stored backup and marks the anchor unknown, both of
+        // which a concurrent switch or refresh would otherwise read half-done.
+        let removed = await credentialGate.withGate("remove") { () -> Bool in
+            // Waiting for the gate can span another switch, so "was this the
+            // active account?" is answered now, not from the copy the view
+            // handed over.
+            guard accounts.contains(where: { $0.id == account.id }) else {
+                log.info("[removeAccount] Account is already gone; nothing to do")
+                return false
+            }
+            let wasActive = activeAccount?.id == account.id
+
+            await keychain.removeAccountBackupAsync(forAccountId: account.id.uuidString)
+            credentialAnchor.forget(accountId: account.id)
+            accounts.removeAll { $0.id == account.id }
+            // Drop every per-account cache too, or a re-added account inherits
+            // the removed one's readings, error banner and rate-limit park.
+            accountUsage[account.id] = nil
+            accountUsageSampledAt[account.id] = nil
+            accountUsageErrors[account.id] = nil
+            usageRetryNotBefore[account.id] = nil
+            autoSwitchConfig.prune(existingAccountIds: Set(accounts.map(\.id)))
+            saveAccounts()
+
+            // The removed account is still the one the CLI is signed in to, so
+            // hand over for real. The old code marked the successor active FIRST
+            // and then called `switchTo`, which saw "target is already active"
+            // and returned — so the credentials were never swapped: the UI moved
+            // on while every API call still went to the deleted account.
+            //
+            // Order matters: `forget` above already made the live credential's
+            // owner unknown, so the switch's own "back up the outgoing account
+            // first" step sees no confirmed owner and skips — which is what
+            // stops it from re-creating the backup just deleted.
+            if wasActive {
+                if let successor = accounts.first {
+                    log.info("[removeAccount] Removed the active account; switching to \(successor.id)")
+                    if await performSwitch(to: successor) == nil {
+                        // Leaving `activeAccount` pointing at the account just
+                        // deleted would keep it in the menu bar and stop the
+                        // usage cycle from sampling anything (it targets whoever
+                        // is active). Better to show nothing than a ghost.
+                        log.error("[removeAccount] Could not switch to \(successor.id)")
+                        // `performSwitch` already put the reason — and the right
+                        // remedy — in `errorMessage`; which remedy applies
+                        // depends on how far the switch got, so only the part
+                        // that is true in every case is added here.
+                        let reason = errorMessage.map { " \($0)" } ?? ""
+                        errorMessage = String(localized: "Removed \(account.email), but the switch to \(successor.email) did not complete.", bundle: L10n.bundle) + reason
+                        activeAccount = nil
+                    }
+                } else {
+                    // Last account removed: nothing to hand over to.
+                    activeAccount = nil
+                }
+            }
+            log.info("[removeAccount] Done. Remaining accounts: \(self.accounts.count)")
+            return true
+        }
+
+        // Outside the gate: the widget snapshot and the cards still describe the
+        // account that was just removed, and nothing else would rewrite them
+        // until the next timer tick five minutes later.
+        if removed {
+            let carriedError = errorMessage
+            await refresh()
+            // `refresh()` clears errorMessage; a removal that failed its
+            // hand-over has something to say that outlives it.
+            if let carriedError { errorMessage = carriedError }
+        }
+    }
+
+    func switchTo(_ account: Account) async {
+        // No active account is a legitimate state to switch FROM: it is what is
+        // left after removing the account in use when the hand-over could not
+        // complete, and the message shown there tells the user to switch
+        // manually. Returning here would make that instruction a lie.
+        guard activeAccount?.id != account.id else {
+            log.info("[switchTo] No switch needed (already the active account)")
+            return
+        }
+
+        log.info("[switchTo] ===== Switching from \(self.activeAccount?.email ?? "no active account") to \(account.email) =====")
+
+        // A switch already in flight or a running login means the user clicked
+        // twice or clicked during a login: stand down rather than queue, so the
+        // second click cannot fire a switch the user has since stopped wanting.
+        guard !isSwitching, !isLoggingIn else {
+            log.warning("[switchTo] Skipped: another switch or a login is in progress")
+            return
+        }
+
+        isSwitching = true
+        defer { isSwitching = false }
+        let outcome = await credentialGate.withGate("switch") {
+            await performSwitch(to: account)
+        }
+
+        guard let outcome else { return }
+
+        await refresh()
+        // `refresh()` clears errorMessage, so surface the warning afterwards.
+        if let shadowedBy = outcome.shadowedBy {
+            errorMessage = String(localized: "Switched to \(account.email), but the Claude CLI is authenticating via \(shadowedBy) instead of the stored login, so it will not use this account.", bundle: L10n.bundle)
+        }
+        log.info("[switchTo] ===== Switch completed =====")
+    }
+
+    /// The switch itself. **The caller must hold `credentialGate`**; it also owns
+    /// the follow-up `refresh()`, which must happen after the gate is released or
+    /// the refresh would wait for a gate its own caller is holding.
+    ///
+    /// Returns nil when no switch happened (state moved while waiting, or the
+    /// switch failed) — the caller then skips the refresh.
+    private func performSwitch(to account: Account) async -> ClaudeService.SwitchOutcome? {
+        // State is re-read here, not in the caller: waiting for the gate can
+        // span a login, another switch, or an account removal, any of which
+        // makes the decision taken before the wait stale.
+        let currentActive = activeAccount
+        guard currentActive?.id != account.id else {
+            log.info("[switchTo] Nothing left to do after waiting for the gate")
+            return nil
+        }
+        // `removeAccount` calls this with the removed account still marked
+        // active, which is what makes the hand-over work: the credential being
+        // replaced is that account's.
+        guard accounts.contains(where: { $0.id == account.id }) else {
+            log.warning("[switchTo] Target account no longer exists; standing down")
+            return nil
+        }
 
         // Pre-switch: resolve the target's backup ONCE and hand it down.
         // "The store is briefly unreadable" and "no backup exists" are
@@ -541,28 +674,40 @@ final class AppState: ObservableObject {
         // re-authenticate over a locked keychain. Passing the resolved backup
         // into switchAccount also removes its second lookup, which collapsed
         // exactly this distinction one layer down.
-        let targetBackup: AccountBackup
-        switch keychain.lookupAccountBackup(forAccountId: account.id.uuidString) {
-        case .found(let backup):
-            // "A backup exists" and "a backup that can log anyone in exists"
-            // are different facts. A capture taken while the CLI held no live
-            // login stores an intact envelope around two empty secrets, and it
-            // reads as present everywhere else in the app. Writing it would
-            // trade a working session for a dead one.
-            guard backup.hasUsableCredentials else {
-                log.error("[switchTo] ABORT: backup for target account carries no OAuth secret")
-                errorMessage = String(localized: "The stored credentials for \(account.email) are empty. Use re-authenticate to sign in again.", bundle: L10n.bundle)
-                return
-            }
-            targetBackup = backup
+        // Decoded here, right before the call that hands it off: a value
+        // produced inside a helper is in that helper's isolation region, and
+        // Swift 6 will not let it cross into `switchAccount` (which runs off the
+        // main actor). `AccountBackup` cannot be `Sendable` — it carries
+        // `AnyCodable` — so the encoded form travels and the decode stays local.
+        let targetBackupData: Data
+        switch await keychain.lookupAccountBackupDataAsync(forAccountId: account.id.uuidString) {
+        case .found(let data):
+            targetBackupData = data
         case .missing:
             log.error("[switchTo] ABORT: no backup for target account")
             errorMessage = String(localized: "No stored credentials for \(account.email). Use re-authenticate to fix.", bundle: L10n.bundle)
-            return
+            return nil
         case .storeUnavailable:
             log.error("[switchTo] ABORT: backup store unreadable right now")
             errorMessage = String(localized: "Credential storage is temporarily unavailable. Try again shortly.", bundle: L10n.bundle)
-            return
+            return nil
+        }
+
+        guard let targetBackup = try? JSONDecoder().decode(AccountBackup.self, from: targetBackupData) else {
+            log.error("[switchTo] ABORT: stored backup for target account did not decode")
+            errorMessage = String(localized: "Credential storage is temporarily unavailable. Try again shortly.", bundle: L10n.bundle)
+            return nil
+        }
+
+        // "A backup exists" and "a backup that can log anyone in exists" are
+        // different facts. A capture taken while the CLI held no live login
+        // stores an intact envelope around two empty secrets, and it reads as
+        // present everywhere else in the app. Writing it would trade a working
+        // session for a dead one.
+        guard targetBackup.hasUsableCredentials else {
+            log.error("[switchTo] ABORT: backup for target account carries no OAuth secret")
+            errorMessage = String(localized: "The stored credentials for \(account.email) are empty. Use re-authenticate to sign in again.", bundle: L10n.bundle)
+            return nil
         }
 
         // Any switch, deliberate or automatic, restarts the auto-switch cooldown:
@@ -574,15 +719,20 @@ final class AppState: ObservableObject {
         // account's. Resolved here, where the account list lives, and handed
         // down for the same reason `targetBackup` is: the switch must not
         // re-derive it from the identity block one layer lower.
-        let liveCredentialIsSource = liveCredentialOwner().credentialAccountId == currentActive.id
+        let liveCredentialIsSource: Bool
+        if let currentActive {
+            liveCredentialIsSource = await liveCredentialOwner().credentialAccountId == currentActive.id
+        } else {
+            // Nothing to back up, so nothing to confirm ownership of.
+            liveCredentialIsSource = false
+        }
 
-        isLoading = true
         do {
             let outcome = try await claudeService.switchAccount(from: currentActive, to: account, targetBackup: targetBackup, liveCredentialIsSource: liveCredentialIsSource)
 
             // CCSwitcher just wrote this credential for this account — the one
             // moment the pairing is known first-hand rather than inferred.
-            anchorLiveCredential(to: account.id)
+            await anchorLiveCredential(to: account.id)
 
             for i in accounts.indices {
                 accounts[i].isActive = (accounts[i].id == account.id)
@@ -592,34 +742,15 @@ final class AppState: ObservableObject {
             }
             activeAccount = account
             saveAccounts()
-
-            await refresh()
-            // `refresh()` clears errorMessage, so surface the warning afterwards.
-            if let shadowedBy = outcome.shadowedBy {
-                errorMessage = String(localized: "Switched to \(account.email), but the Claude CLI is authenticating via \(shadowedBy) instead of the stored login, so it will not use this account.", bundle: L10n.bundle)
-            }
-            log.info("[switchTo] ===== Switch completed =====")
+            return outcome
         } catch {
             errorMessage = error.localizedDescription
-            isLoading = false
             log.error("[switchTo] Switch failed: \(error.localizedDescription)")
+            return nil
         }
     }
 
     // MARK: - Auto-switch
-
-    /// Whether an account can be switched to right now: it must have a stored
-    /// backup token that still carries an OAuth secret, and not be flagged
-    /// expired (an emptied or expired backup would fail the
-    /// switch verification, or silently swap in a dead session).
-    private func isSwitchable(_ account: Account) -> Bool {
-        guard let backup = keychain.getAccountBackup(forAccountId: account.id.uuidString) else { return false }
-        // An emptied backup would fail the switch the same way an expired one
-        // does, and auto-switch has no user in front of it to read the error.
-        guard backup.hasUsableCredentials else { return false }
-        if let error = accountUsageErrors[account.id], error.isExpired { return false }
-        return true
-    }
 
     /// Evaluate whether the active account has reached the threshold and, if so,
     /// switch to the same-provider account with the most quota left.
@@ -641,26 +772,91 @@ final class AppState: ObservableObject {
             return
         }
 
-        // Only consider same-provider accounts (a Claude switch never touches Codex/Gemini).
-        let candidates = accounts.filter { $0.provider == active.provider && $0.id != active.id }
+        // Cheap pre-check, outside the gate: reading samples already in memory
+        // costs nothing, and almost every refresh stops right here. Only once
+        // the threshold is actually reached is it worth queueing behind whatever
+        // else is touching credentials.
         let activeSampledThisCycle = (accountUsageSampledAt[active.id] ?? .distantPast) >= lastCycleStart
-        let ranked = AutoSwitchEngine.rankedTargets(
-            active: active,
-            candidates: candidates,
-            usageByAccount: accountUsage,
-            isSwitchable: { [unowned self] in self.isSwitchable($0) },
-            activeSampledThisCycle: activeSampledThisCycle,
-            threshold: autoSwitchThreshold,
-            hysteresisPct: autoSwitchHysteresis
-        )
-        guard !ranked.isEmpty else { return }
+        guard let activeUtil = AutoSwitchEngine.bindingUtilization(
+                accountUsage[active.id],
+                requireKnownWindow: !activeSampledThisCycle
+              ),
+              activeUtil >= autoSwitchThreshold else {
+            return
+        }
 
         isEvaluatingAutoSwitch = true
         defer { isEvaluatingAutoSwitch = false }
 
+        let switched = await credentialGate.withGate("autoSwitch") {
+            await performAutoSwitch()
+        }
+
+        if switched { await refresh() }
+    }
+
+    /// Candidate verification and the switch itself. **The caller must hold
+    /// `credentialGate`**: verification refreshes a candidate's stored
+    /// credential and writes it back, which is exactly the work a manual switch
+    /// or a re-authentication must not interleave with.
+    ///
+    /// Returns whether a switch actually happened.
+    private func performAutoSwitch() async -> Bool {
+        // Everything decided before the wait is re-checked here.
+        guard !isLoggingIn, !isSwitching, let active = activeAccount else {
+            log.info("[autoSwitch] State changed while waiting for the gate; standing down")
+            return false
+        }
+        if let last = lastAutoSwitchAt, Date().timeIntervalSince(last) < autoSwitchCooldown {
+            log.info("[autoSwitch] Cooldown started while waiting for the gate; standing down")
+            return false
+        }
+
+        // Only consider same-provider accounts (a Claude switch never touches Codex/Gemini).
+        let candidates = accounts.filter { $0.provider == active.provider && $0.id != active.id }
+        let activeSampledThisCycle = (accountUsageSampledAt[active.id] ?? .distantPast) >= lastCycleStart
+
+        // The settings this evaluation is based on. Verification below suspends
+        // on the network, and a list edited during that wait must not be acted
+        // on with the old one — the user could have just unselected the very
+        // account we are about to switch to.
+        let selectedTargetIds = autoSwitchConfig.targetIds
+        let selectedPolicy = autoSwitchConfig.policy
+
+        // Reading the stored backups hits the keychain, which is now off the
+        // main thread — so resolve the whole set in ONE store read and hand the
+        // ranking engine a plain lookup. The engine stays a pure function.
+        guard let usableBackupIds = await keychain.usableBackupIdsAsync() else {
+            // The store is unreadable right now; every candidate would look
+            // unswitchable, which is not the same as being unswitchable.
+            log.warning("[autoSwitch] Backup store unreadable; standing down this cycle")
+            return false
+        }
+        let switchableIds = Set(candidates.filter {
+            usableBackupIds.contains($0.id.uuidString) && accountUsageErrors[$0.id]?.isExpired != true
+        }.map(\.id))
+
+        let ranked = AutoSwitchEngine.rankedTargets(
+            active: active,
+            candidates: candidates,
+            usageByAccount: accountUsage,
+            isSwitchable: { switchableIds.contains($0.id) },
+            activeSampledThisCycle: activeSampledThisCycle,
+            targetIds: selectedTargetIds,
+            policy: selectedPolicy,
+            threshold: autoSwitchThreshold,
+            hysteresisPct: autoSwitchHysteresis
+        )
+        guard !ranked.isEmpty else {
+            if !selectedTargetIds.isEmpty {
+                log.info("[autoSwitch] Threshold reached but none of the selected accounts qualify; staying put")
+            }
+            return false
+        }
+
         let activeUtil = AutoSwitchEngine.bindingUtilization(accountUsage[active.id]) ?? -1
         let ceiling = autoSwitchThreshold - autoSwitchHysteresis
-        log.info("[autoSwitch] Active \(active.id) at \(String(format: "%.0f", activeUtil))% (threshold \(String(format: "%.0f", self.autoSwitchThreshold))%); \(ranked.count) candidate(s)")
+        log.info("[autoSwitch] Active \(active.id) at \(String(format: "%.0f", activeUtil))% (threshold \(String(format: "%.0f", self.autoSwitchThreshold))%); candidates in order: \(ranked.map { $0.id.uuidString })")
 
         // At most ONE fresh verification request per evaluation. Later ranked
         // candidates only qualify via samples this cycle already took.
@@ -688,24 +884,27 @@ final class AppState: ObservableObject {
                 continue
             }
 
-            // Re-check volatile state: the verification await above can span a
-            // login starting, a timer-tick refresh beginning, or a manual switch
-            // the user just clicked (which updates `activeAccount` only after
-            // its subprocess work finishes — hence the explicit isSwitching).
-            guard !isLoggingIn, !isRefreshing, !isSwitching, activeAccount?.id == active.id else {
+            // The verification above is a network round trip. Holding the gate
+            // keeps other credential work out, but a user click that set
+            // `isSwitching` while queueing still wins over an automatic switch.
+            guard !isLoggingIn, !isSwitching, activeAccount?.id == active.id else {
                 log.info("[autoSwitch] State changed during verification; standing down")
-                return
+                return false
+            }
+            guard autoSwitchConfig.targetIds == selectedTargetIds,
+                  autoSwitchConfig.policy == selectedPolicy else {
+                log.info("[autoSwitch] Auto-switch settings changed during verification; standing down")
+                return false
             }
 
             log.info("[autoSwitch] Switching to \(target.id), verified at \(String(format: "%.0f", verifiedUtil))%")
             lastAutoSwitchAt = Date()
-            // switchTo() calls refresh() -> evaluateAutoSwitch() again, but the
-            // re-entrancy flag + the freshly-set cooldown make that a no-op.
-            // The active account visibly changes in the menu bar as feedback.
-            await switchTo(target)
-            return
+            isSwitching = true
+            defer { isSwitching = false }
+            return await performSwitch(to: target) != nil
         }
         log.info("[autoSwitch] Threshold reached but no candidate verified; staying put")
+        return false
     }
 
     /// Take one fresh usage reading for an account right now, refreshing its
@@ -721,14 +920,14 @@ final class AppState: ObservableObject {
         // Same rule as the polling loop: the live credential may only stand in
         // for the account it actually belongs to. Auto-switch verifies against
         // this reading, so a misattributed one would swap on the wrong quota.
-        if account.isActive, liveCredentialOwner().credentialAccountId != account.id {
+        if account.isActive, await liveCredentialOwner().credentialAccountId != account.id {
             log.warning("[fetchUsageNow] Live credential is not confirmed to be \(account.email)'s; no reading available")
             return nil
         }
 
         let tokenJSON = account.isActive
-            ? keychain.readClaudeToken()
-            : keychain.getAccountBackup(forAccountId: account.id.uuidString)?.token
+            ? await keychain.readClaudeTokenAsync()
+            : await backup(forAccountId: account.id.uuidString)?.token
         guard let tokenJSON, let accessToken = ClaudeService.extractAccessToken(from: tokenJSON) else {
             return nil
         }
@@ -770,8 +969,6 @@ final class AppState: ObservableObject {
             errorMessage = String(localized: "Claude CLI not found", bundle: L10n.bundle)
             return
         }
-        // One credential mutation at a time — see loginNewAccount for why a
-        // login during a suspended switch destroys a backup.
         guard !isSwitching, !isLoggingIn else {
             log.warning("[reauth] Skipped: a switch or another login is in progress")
             return
@@ -780,11 +977,42 @@ final class AppState: ObservableObject {
         isLoggingIn = true
         errorMessage = nil
 
+        let result = await credentialGate.withGate("reauth") {
+            await performReauth(account)
+        }
+        isLoggingIn = false
+
+        guard case .completed(let captured) = result else { return }
+        await refresh()
+        if captured {
+            log.info("[reauth] ===== Re-authentication completed =====")
+        } else {
+            // Set AFTER refresh() — refresh clears errorMessage.
+            errorMessage = String(localized: "Could not capture credentials", bundle: L10n.bundle)
+            log.error("[reauth] ===== Re-authentication finished, but the backup capture FAILED =====")
+        }
+    }
+
+    private enum ReauthResult {
+        case stopped
+        /// The CLI is on the target account now; `captured` says whether the
+        /// stored backup was updated to match.
+        case completed(captured: Bool)
+    }
+
+    /// The re-authentication itself. **The caller must hold `credentialGate`**
+    /// and owns the follow-up `refresh()`.
+    private func performReauth(_ account: Account) async -> ReauthResult {
+        // Waiting for the gate can span a removal of this very account.
+        guard accounts.contains(where: { $0.id == account.id }) else {
+            log.warning("[reauth] Target account no longer exists; standing down")
+            return .stopped
+        }
         do {
             // 1. Back up current active account before login overwrites it
             if let current = activeAccount, current.id != account.id {
                 log.info("[reauth] Backing up current account before login...")
-                captureLiveCredential(as: current)
+                await captureLiveCredential(as: current)
             }
 
             // 2. Run login
@@ -795,28 +1023,24 @@ final class AppState: ObservableObject {
             let status = try await claudeService.getAuthStatus()
             guard status.loggedIn else {
                 errorMessage = String(localized: "Login did not complete", bundle: L10n.bundle)
-                isLoggingIn = false
-                return
+                return .stopped
             }
             guard let email = status.email else {
                 errorMessage = shadowedIdentityMessage(status)
                 log.error("[reauth] CLI reports authMethod=\(status.authMethod ?? "nil") without an account identity")
-                isLoggingIn = false
-                return
+                return .stopped
             }
 
             guard email == account.email else {
                 errorMessage = String(localized: "Logged in as \(email), but expected \(account.email). Credentials not updated.", bundle: L10n.bundle)
                 log.error("[reauth] Email mismatch: got \(email), expected \(account.email)")
-                isLoggingIn = false
-                return
+                return .stopped
             }
 
             // 4. Capture the fresh token. The login just proved this credential
-            // is this account's, so it also re-anchors — this is the way out of
+            // is this account's, so it also anchors — this is the way out of
             // a desync the user is told to take.
-            let captured = claudeService.captureCurrentCredentials(forAccountId: account.id.uuidString)
-            if captured { anchorLiveCredential(to: account.id) }
+            let captured = await captureAfterLogin(as: account, expectedEmail: account.email)
             log.info("[reauth] Token capture result: \(captured)")
 
             // 5. Update account metadata. Done even when the capture failed —
@@ -839,19 +1063,11 @@ final class AppState: ObservableObject {
                 saveAccounts()
             }
 
-            isLoggingIn = false
-            await refresh()
-            if captured {
-                log.info("[reauth] ===== Re-authentication completed =====")
-            } else {
-                // Set AFTER refresh() — refresh clears errorMessage.
-                errorMessage = String(localized: "Could not capture credentials", bundle: L10n.bundle)
-                log.error("[reauth] ===== Re-authentication finished, but the backup capture FAILED =====")
-            }
+            return .completed(captured: captured)
         } catch {
             errorMessage = error.localizedDescription
-            isLoggingIn = false
             log.error("[reauth] Error: \(error.localizedDescription)")
+            return .stopped
         }
     }
 
@@ -929,7 +1145,7 @@ final class AppState: ObservableObject {
         let accountId = account.id.uuidString
 
         let backup: AccountBackup
-        switch keychain.lookupAccountBackup(forAccountId: accountId) {
+        switch await lookupBackup(forAccountId: accountId) {
         case .found(let found):
             backup = found
         case .missing:
@@ -947,19 +1163,19 @@ final class AppState: ObservableObject {
         // the failures that matter here (locked keychain, denied prompt) are
         // conditions rather than blips, so this turns them into a harmless
         // "try again next cycle".
-        guard keychain.saveAccountBackup(token: backup.token, oauthAccount: backup.oauthAccount, forAccountId: accountId) else {
+        guard await saveBackup(backup, forAccountId: accountId) else {
             log.error("[refreshBackup] Store not writable; skipping refresh for \(account.id) so its refresh token stays valid")
             return .storeUnavailable
         }
 
         switch await claudeService.refreshOAuthCredentials(backup.token) {
         case .success(let refreshed):
-            if keychain.saveAccountBackup(token: refreshed, oauthAccount: backup.oauthAccount, forAccountId: accountId) {
+            if await saveBackup(AccountBackup(token: refreshed, oauthAccount: backup.oauthAccount), forAccountId: accountId) {
                 return .refreshed(refreshed)
             }
             // The probe passed moments ago, so this is likely a blip — one retry.
             try? await Task.sleep(nanoseconds: 1_000_000_000)
-            if keychain.saveAccountBackup(token: refreshed, oauthAccount: backup.oauthAccount, forAccountId: accountId) {
+            if await saveBackup(AccountBackup(token: refreshed, oauthAccount: backup.oauthAccount), forAccountId: accountId) {
                 return .refreshed(refreshed)
             }
             log.error("[refreshBackup] Rotation succeeded but the store write failed twice for \(account.id); the account needs re-authentication")
@@ -975,7 +1191,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func fetchAllAccountUsage() async {
+    private func fetchAllAccountUsage(liveOwner: LiveCredentialOwner) async {
         // Pick this cycle's targets: the active account (always) + one non-active
         // account in round-robin order. Stale samples for the others are kept.
         // Accounts parked by a server-given Retry-After deadline are skipped.
@@ -1001,7 +1217,7 @@ final class AppState: ObservableObject {
         // account, and only that account's card may be filled from it. Reading
         // it for whoever the identity block currently names is what put one
         // account's percentages on the other's card for hours.
-        let liveCredentialOwnerId = liveCredentialOwner().credentialAccountId
+        let liveCredentialOwnerId = liveOwner.credentialAccountId
 
         var isFirstRequest = true
         for account in targets {
@@ -1019,9 +1235,9 @@ final class AppState: ObservableObject {
                     accountUsageErrors[account.id] = UsageErrorState(isExpired: false, isRateLimited: false, message: String(localized: "Can't tell which account the current sign-in belongs to. Switch accounts once to re-sync.", bundle: L10n.bundle))
                     continue
                 }
-                tokenJSON = keychain.readClaudeToken()
+                tokenJSON = await keychain.readClaudeTokenAsync()
             } else {
-                tokenJSON = keychain.getAccountBackup(forAccountId: account.id.uuidString)?.token
+                tokenJSON = await backup(forAccountId: account.id.uuidString)?.token
             }
             guard let tokenJSON, let accessToken = ClaudeService.extractAccessToken(from: tokenJSON) else {
                 log.warning("[fetchUsage] No token for \(account.email), skipping")
@@ -1064,9 +1280,16 @@ final class AppState: ObservableObject {
                         // re-anchor to the same account — otherwise the anchor
                         // goes stale and the next cycle falls back to believing
                         // the identity block again.
-                        if let refreshedJSON = keychain.readClaudeToken(),
+                        if let refreshedJSON = await keychain.readClaudeTokenAsync(),
                            let refreshedToken = ClaudeService.extractAccessToken(from: refreshedJSON) {
-                            credentialAnchor.anchor(accountId: account.id, accessToken: refreshedToken)
+                            // Only when the pairing was sound to begin with. A
+                            // desynced credential that rotates must fall through
+                            // to "owner unknown"; re-anchoring here would quietly
+                            // undo that, which is the misfiling this all exists
+                            // to stop.
+                            if case .owned = liveOwner {
+                                credentialAnchor.anchor(accountId: account.id, accessToken: refreshedToken)
+                            }
                             if let usage = await usageRespectingParking(accessToken: refreshedToken, account: account) {
                                 accountUsage[account.id] = usage
                                 accountUsageSampledAt[account.id] = Date()
@@ -1131,15 +1354,14 @@ final class AppState: ObservableObject {
     }
 
     /// Passive health check — verifies backup existence and identity consistency.
-    private func diagnoseTokenHealth() {
+    private func diagnoseTokenHealth(liveOwner: LiveCredentialOwner) async {
         guard !accounts.isEmpty else { return }
 
         log.info("[diagnose] === Health Check ===")
         log.info("[diagnose] Accounts: \(self.accounts.count), active: \(self.activeAccount?.email ?? "none")")
 
         // Check live oauthAccount identity
-        if let liveOAuth = keychain.readOAuthAccount() {
-            let liveEmail = (liveOAuth["emailAddress"]?.value as? String) ?? "?"
+        if let liveEmail = await keychain.readOAuthAccountEmailAsync() {
             log.info("[diagnose] Live oauthAccount: \(liveEmail)")
         } else {
             log.warning("[diagnose] Live oauthAccount: MISSING")
@@ -1149,7 +1371,7 @@ final class AppState: ObservableObject {
         // credential is actually sitting next to it. When they disagree, every
         // number on the cards is suspect — say so here rather than leaving it
         // to be reconstructed from percentages later.
-        switch liveCredentialOwner() {
+        switch liveOwner {
         case .owned(let id):
             log.info("[diagnose] Live credential belongs to: \(self.accounts.first(where: { $0.id == id })?.email ?? id.uuidString)")
         case .desynced(_, let credential):
@@ -1158,22 +1380,23 @@ final class AppState: ObservableObject {
             log.warning("[diagnose] Live credential owner: UNKNOWN")
         }
 
-        // Check each account has a backup
-        for account in accounts {
-            if let backup = keychain.getAccountBackup(forAccountId: account.id.uuidString) {
-                let backupEmail = (backup.oauthAccount["emailAddress"]?.value as? String) ?? "?"
-                // The email lives in `oauthAccount`, and an emptied backup keeps
-                // that block intact, so checking it alone reports a backup that
-                // cannot log anyone in as healthy.
-                if backup.hasUsableCredentials {
-                    log.info("[diagnose] Backup [\(account.email)]: OK (email=\(backupEmail))")
-                } else {
-                    log.warning("[diagnose] Backup [\(account.email)]: EMPTY — metadata is intact but the token carries no OAuth secret; switch will fail until re-authenticated")
-                }
-            } else {
-                log.warning("[diagnose] Backup [\(account.email)]: MISSING — switch will fail")
-            }
+        // Which accounts have a backup that could actually log someone in.
+        // One pass over the store for all of them: asking per account decoded
+        // the whole store once per account, on every refresh cycle, to produce
+        // these log lines.
+        //
+        // "Missing" and "present but empty" are collapsed here: the distinction
+        // only ever reached the log, and both mean the same thing to the user —
+        // a switch to that account will fail until it is re-authenticated.
+        guard let usable = await keychain.usableBackupIdsAsync() else {
+            log.warning("[diagnose] Backup store could not be read right now; no per-account verdict this cycle")
+            log.info("[diagnose] === End Health Check ===")
+            return
         }
+        for account in accounts where !usable.contains(account.id.uuidString) {
+            log.warning("[diagnose] Backup [\(account.email)]: MISSING or EMPTY — switch will fail until re-authenticated")
+        }
+        log.info("[diagnose] Backups usable: \(usable.count)/\(self.accounts.count)")
 
         log.info("[diagnose] === End Health Check ===")
     }
@@ -1223,6 +1446,7 @@ final class AppState: ObservableObject {
         }
         accounts = decoded
         activeAccount = accounts.first(where: \.isActive)
+        autoSwitchConfig.prune(existingAccountIds: Set(accounts.map(\.id)))
         log.info("[loadAccounts] Loaded \(decoded.count) accounts")
     }
 
@@ -1236,7 +1460,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func updateActiveAccount(from status: AuthStatus) {
+    private func updateActiveAccount(from status: AuthStatus, liveOwner: LiveCredentialOwner) {
         guard status.loggedIn, let email = status.email else { return }
 
         // The CLI reports the identity block, so when that block has been
@@ -1244,7 +1468,7 @@ final class AppState: ObservableObject {
         // Every API call is billed against the credential, so the active badge
         // belongs to its owner — following the block here is what made the app
         // claim the other account was in use while its quota sat untouched.
-        if case .desynced(_, let credentialOwner) = liveCredentialOwner(),
+        if case .desynced(_, let credentialOwner) = liveOwner,
            let index = accounts.firstIndex(where: { $0.id == credentialOwner }) {
             for i in accounts.indices {
                 accounts[i].isActive = (i == index)
@@ -1265,22 +1489,6 @@ final class AppState: ObservableObject {
             activeAccount = accounts[index]
             saveAccounts()
             log.info("[updateActiveAccount] Matched existing account at index \(index)")
-        } else if accounts.isEmpty {
-            let account = Account(
-                email: email,
-                displayName: status.orgName ?? email,
-                provider: .claudeCode,
-                orgName: status.orgName,
-                subscriptionType: status.subscriptionType,
-                isActive: true
-            )
-            accounts.append(account)
-            activeAccount = account
-            if claudeService.captureCurrentCredentials(forAccountId: account.id.uuidString) {
-                anchorLiveCredential(to: account.id)
-            }
-            saveAccounts()
-            log.info("[updateActiveAccount] Auto-created first account, id=\(account.id)")
         } else {
             log.info("[updateActiveAccount] Logged-in account not in our list (might be new)")
         }

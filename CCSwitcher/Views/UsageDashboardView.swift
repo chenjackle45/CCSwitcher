@@ -125,14 +125,12 @@ struct UsageDashboardView: View {
                 Image(systemName: "calendar.badge.clock")
                     .font(.subheadline)
                     .foregroundStyle(.brand)
-                Text("Weekly Consumption — All Accounts")
+                Text("Weekly usage across accounts")
                     .font(.subheadline.weight(.medium))
                 Spacer()
-                if summary.hasData {
-                    let accountsBadge = String(format: String(localized: "%lld/%lld accounts", bundle: L10n.bundle),
-                                                summary.sampledAccountCount, summary.accountCount)
-                    Badge(text: accountsBadge, color: .green)
-                }
+                let accountsBadge = String(format: String(localized: "%lld/%lld in this cycle", bundle: L10n.bundle),
+                                           summary.sampledAccountCount, summary.accountCount)
+                Badge(text: accountsBadge, color: .green)
             }
 
             if summary.hasData {

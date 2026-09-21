@@ -273,7 +273,7 @@ struct MainMenuView: View {
 
             Spacer()
 
-            if appState.isLoading {
+            if appState.isLoading || appState.isSwitching {
                 ProgressView()
                     .controlSize(.small)
             }
@@ -338,10 +338,15 @@ struct MainMenuView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
                     .font(.caption)
+                // Two lines plus a tooltip: this batch's messages carry the
+                // remedy in their second half ("switch manually to fix it",
+                // "check which account the CLI is on"), and one line at 360pt
+                // cut exactly that part off.
                 Text(error)
                     .font(.caption2)
                     .foregroundStyle(.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .help(error)
             }
 
             Spacer()

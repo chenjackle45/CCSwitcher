@@ -66,6 +66,10 @@ enum AutoSwitchEngine {
     ///     construction); only RETAINED readings need the strict expiry check,
     ///     because they are the ones that can describe a window that has since
     ///     reset.
+    ///   - targetIds: the accounts the user allows switching to, in priority
+    ///     order. **Empty means every account is allowed** — the behaviour
+    ///     before the setting existed.
+    ///   - policy: how to order the qualifying candidates.
     ///   - threshold: switch when the active binding utilization is >= this (e.g. 90).
     ///   - hysteresisPct: a candidate must sit at least this far below the threshold
     ///     to be eligible (e.g. 10 -> candidate must be <= threshold - 10).
@@ -77,6 +81,8 @@ enum AutoSwitchEngine {
         usageByAccount: [UUID: UsageAPIResponse],
         isSwitchable: (Account) -> Bool,
         activeSampledThisCycle: Bool,
+        targetIds: [UUID] = [],
+        policy: AutoSwitchPolicy = .mostHeadroom,
         threshold: Double,
         hysteresisPct: Double,
         asOf now: Date = Date()
@@ -99,14 +105,30 @@ enum AutoSwitchEngine {
         //    let an automatic switch land on an account that was itself maxed
         //    out, which is the exact failure this feature exists to prevent.
         let ceiling = threshold - hysteresisPct
-        return candidates
+        // 3) Honour the user's list. An empty list is "no restriction", not
+        //    "nothing allowed": the setting starts empty, and a fresh upgrade
+        //    must behave exactly as before. A non-empty list with no qualifying
+        //    member means stay put — it must NOT fall back to every account.
+        let allowed = Set(targetIds)
+        let qualifying = candidates
             .compactMap { candidate -> (Account, Double)? in
                 guard candidate.id != active.id, isSwitchable(candidate),
+                      allowed.isEmpty || allowed.contains(candidate.id),
                       let util = bindingUtilization(usageByAccount[candidate.id], asOf: now),
                       util <= ceiling else { return nil }
                 return (candidate, util)
             }
-            // 3) Most headroom first (lowest known utilization).
+
+        // 4) Order them. `listOrder` needs a list to order by, so with no
+        //    selection it means the same thing as `mostHeadroom`.
+        if policy == .listOrder, !targetIds.isEmpty {
+            let rank = Dictionary(targetIds.enumerated().map { ($0.element, $0.offset) }, uniquingKeysWith: { first, _ in first })
+            return qualifying
+                .sorted { (rank[$0.0.id] ?? .max) < (rank[$1.0.id] ?? .max) }
+                .map { $0.0 }
+        }
+        // Most headroom first (lowest known utilization).
+        return qualifying
             .sorted { $0.1 < $1.1 }
             .map { $0.0 }
     }

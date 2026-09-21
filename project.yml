@@ -62,6 +62,39 @@ targets:
         embed: true
         codeSign: true
 
+  # Logic-test bundle: no host app, so running the tests never launches
+  # CCSwitcher (which would touch the real keychain and the real log file).
+  # The sources under test are compiled straight in; `FileLogger.swift` is
+  # deliberately absent — CCSwitcherTests/TestFileLog.swift stands in for it.
+  CCSwitcherTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: CCSwitcherTests
+      - path: CCSwitcher/Services/CredentialAnchor.swift
+      - path: CCSwitcher/Services/CredentialGate.swift
+      - path: CCSwitcher/Services/ClaudeService.swift
+      - path: CCSwitcher/Services/KeychainService.swift
+      - path: CCSwitcher/Services/L10n.swift
+      - path: CCSwitcher/Models/Account.swift
+      - path: CCSwitcher/Models/String+Obfuscation.swift
+      - path: CCSwitcher/Models/UsageData.swift
+      - path: CCSwitcher/Models/AutoSwitchConfig.swift
+      - path: CCSwitcher/Services/AutoSwitchEngine.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nowaylm.ccswitcherplus.tests
+        PRODUCT_NAME: CCSwitcherTests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_STRICT_CONCURRENCY: targeted
+        # A logic-test bundle runs out of a temporary directory; signing it
+        # would need a Mac Development certificate this machine does not have.
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
+
   CCSwitcherWidgetExtension:
     type: extensionkit-extension
     platform: macOS
@@ -96,3 +129,12 @@ targets:
         com.apple.security.app-sandbox: true
         com.apple.security.application-groups:
           - G9J8D2T6DV.com.nowaylm.ccswitcherplus
+
+schemes:
+  CCSwitcherTests:
+    build:
+      targets:
+        CCSwitcherTests: [test]
+    test:
+      targets:
+        - CCSwitcherTests

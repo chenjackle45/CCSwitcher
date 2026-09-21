@@ -82,17 +82,12 @@
 
 /* Account Switcher */
 "No Accounts" = "アカウントなし";
-"Add your current Claude Code account to get started." = "現在の Claude Code アカウントを追加して開始します。";
 "Custom label" = "カスタムラベル";
 "Edit label" = "ラベルを編集";
 "Switch" = "切替";
 "Login New Account" = "新規アカウントでログイン";
-"Add Current Account" = "現在のアカウントを追加";
 "Waiting for browser login..." = "ブラウザでのログインを待機中...";
 "Complete the login in your browser, then return here." = "ブラウザでログインを完了し、ここに戻ってください。";
-"This will capture the currently logged-in Claude Code account." = "現在ログイン中の Claude Code アカウントを取り込みます。";
-"Cancel" = "キャンセル";
-"Add Account" = "アカウントを追加";
 "Re-authenticate (fix stale token)" = "再認証（期限切れトークンの修復）";
 "Remove account" = "アカウントを削除";
 
@@ -124,9 +119,6 @@
 
 /* AppState Errors */
 "Claude CLI not found" = "Claude CLI が見つかりません";
-"Not logged in to Claude. Run 'claude auth login' first." = "Claude にログインしていません。先に 'claude auth login' を実行してください。";
-"Account already exists" = "アカウントは既に存在します";
-"Could not capture auth token from keychain" = "キーチェーンから認証トークンを取得できませんでした";
 "Login did not complete" = "ログインが完了しませんでした";
 "Account already exists - credentials refreshed" = "アカウントは既に存在します - 認証情報を更新しました";
 "Could not capture credentials" = "認証情報を取得できませんでした";
@@ -138,7 +130,6 @@
 "Token expired. Switch to this account to refresh." = "トークンが期限切れです。このアカウントに切り替えて更新してください。";
 "API Rate Limited. Try again later." = "API レート制限中。後でもう一度お試しください。";
 "Could not fetch usage: %@" = "使用量を取得できませんでした：%@";
-"Claude reports %@, but the stored sign-in still belongs to %@. Switch accounts once, then add." = "Claude は %1$@ と報告していますが、保存されているサインインは %2$@ のものです。一度アカウントを切り替えてから追加してください。";
 "Claude reports %@, but the stored sign-in is still %@'s — another Claude Code session rewrote the identity. Switch accounts once to re-sync." = "Claude は %1$@ と報告していますが、保存されているサインインは %2$@ のままです。別の Claude Code セッションが識別情報を書き換えました。一度アカウントを切り替えて再同期してください。";
 "Can't tell which account the current sign-in belongs to. Switch accounts once to re-sync." = "現在のサインインがどのアカウントのものか判別できません。一度アカウントを切り替えて再同期してください。";
 
@@ -178,7 +169,33 @@
 "Auto-switch" = "自動切り替え";
 "Switch account before hitting the limit" = "上限に達する前にアカウントを切り替える";
 "Switch at" = "切り替えしきい値";
-"When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to the account with the most quota left. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "アクティブなアカウントの 5 時間または週間使用量がこのレベルに達すると、CCSwitcher は残りクォータが最も多いアカウントに切り替えます。更新のたびにチェックされ、5 分間のクールダウンで頻繁な切り替えを防ぎます。";
 "Updated %@ ago" = "%@前に更新";
 "Could not save the refreshed sign-in; will retry automatically." = "更新されたログイン情報を保存できませんでした。自動的に再試行します。";
 "Credential storage is temporarily unavailable. Try again shortly." = "認証情報ストレージは一時的に利用できません。しばらくしてからもう一度お試しください。";
+"Sign in to a Claude Code account to get started." = "Claude Code アカウントにサインインして始めましょう。";
+
+/* Weekly usage across accounts (#28) */
+"Weekly usage across accounts" = "全アカウントの週間使用量";
+"%lld/%lld in this cycle" = "今期 %lld/%lld";
+"Total" = "合計";
+"Average" = "平均";
+"Sum of every account's 7-day utilization. Each account has its own weekly quota, so the total can exceed 100%." = "全アカウントの 7 日間使用率の合計。アカウントごとに週間上限があるため、合計が 100% を超えることがあります。";
+"Average 7-day utilization across the accounts that reported data." = "データを報告したアカウントの 7 日間使用率の平均。";
+
+/* Auto-switch account list */
+"Accounts to switch to" = "切り替え先のアカウント";
+"Tick the accounts auto-switch may move to, and drag to set the order. Nothing ticked means every account is allowed." = "自動切り替えの対象にするアカウントにチェックを入れ、ドラッグで順番を決めます。未選択なら全アカウントが対象です。";
+"Every account is allowed" = "すべてのアカウントが対象";
+"%lld selected" = "%lld 件を選択中";
+"Clear selection" = "選択を解除";
+"in use" = "使用中";
+"Pick by" = "選び方";
+"Most quota left" = "残量が最も多い";
+"My order" = "指定した順番";
+"When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "使用中のアカウントの 5 時間または週間使用量がこの水準に達すると、CCSwitcher は下のリストのアカウントに切り替えます。更新ごとに確認し、5 分間は連続切り替えしません。";
+"Only the account in use is ticked, so auto-switch has nowhere to go" = "使用中のアカウントだけが選ばれているため、自動切り替えの行き先がありません";
+"Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it." = "%@ を削除しましたが、他のアカウントに切り替えられませんでした。Claude CLI は削除したアカウントのままなので、手動で切り替えてください。";
+"The stored credentials for %@ are empty. Use re-authenticate to sign in again." = "%@ の保存された認証情報が空です。再認証でサインインし直してください。";
+"More apps at xueshi.dev" = "その他のアプリは xueshi.dev";
+"© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
+"A switch or a login is in progress; try removing the account again in a moment." = "切り替えまたはログインの実行中です。少し待ってからもう一度削除してください。";

@@ -13,6 +13,8 @@ struct DetectedClaudePath: Hashable, Identifiable {
 }
 
 /// Interacts with the Claude CLI to get auth status and manage accounts.
+extension KeychainService: ClaudeService.CredentialStore {}
+
 final class ClaudeService: @unchecked Sendable {
     static let shared = ClaudeService()
 
@@ -381,6 +383,17 @@ final class ClaudeService: @unchecked Sendable {
 
     // MARK: - Account Switching
 
+    /// The credential-store operations a switch performs, so the switch can be
+    /// tested without a keychain. `KeychainService` is the only implementation
+    /// that ships; the tests substitute a fake that can fail on demand.
+    protocol CredentialStore: AnyObject, Sendable {
+        func readClaudeToken() -> String?
+        func readOAuthAccount() -> [String: AnyCodable]?
+        func writeClaudeToken(_ tokenJSON: String) -> Bool
+        func writeOAuthAccount(_ oauthAccount: [String: AnyCodable]) -> Bool
+        func saveAccountBackup(token: String, oauthAccount: [String: AnyCodable], forAccountId accountId: String) -> Bool
+    }
+
     /// Result of a completed switch.
     struct SwitchOutcome {
         /// Set when the swap succeeded but `claude auth status` could not confirm
@@ -393,10 +406,20 @@ final class ClaudeService: @unchecked Sendable {
     /// and holds the credential anchor) and handed down so no second,
     /// ambiguity-collapsing lookup happens here.
     @discardableResult
-    func switchAccount(from currentAccount: Account, to targetAccount: Account, targetBackup: AccountBackup, liveCredentialIsSource: Bool) async throws -> SwitchOutcome {
-        let keychain = KeychainService.shared
+    /// `store` and `verify` exist for the tests: the real switch talks to the
+    /// keychain and to `claude auth status`, neither of which a unit test may
+    /// touch. Production callers use the defaults.
+    func switchAccount(
+        from currentAccount: Account?,
+        to targetAccount: Account,
+        targetBackup: sending AccountBackup,
+        liveCredentialIsSource: Bool,
+        store: CredentialStore = KeychainService.shared,
+        verify: (() async throws -> AuthStatus)? = nil
+    ) async throws -> SwitchOutcome {
+        let keychain = store
 
-        log.info("[switchAccount] Switching from \(currentAccount.id) to \(targetAccount.id)")
+        log.info("[switchAccount] Switching from \(currentAccount?.id.uuidString ?? "no active account") to \(targetAccount.id)")
 
         // A backup with both OAuth secrets blanked cannot authenticate, and
         // Step 4 is far too late to find that out: by then the target's dead
@@ -420,22 +443,55 @@ final class ClaudeService: @unchecked Sendable {
         // overwrites the live credentials before Step 4 can judge them, so
         // they are the only remaining copy of what the CLI was authenticated
         // with if the switch is rejected.
+        // Read the whole snapshot FIRST. Step 3 overwrites both halves, and a
+        // rollback can only put back what was captured here — so a switch that
+        // starts without a complete snapshot is a switch with no way home. Fail
+        // before anything is written instead of after.
         log.info("[switchAccount] Step 1: Backing up current account...")
         let previousToken = keychain.readClaudeToken()
         let previousOAuthAccount = keychain.readOAuthAccount()
-        if let currentToken = previousToken,
-           let currentOAuth = previousOAuthAccount {
-            let email = (currentOAuth["emailAddress"]?.value as? String) ?? "?"
-            if !liveCredentialIsSource {
-                log.warning("[switchAccount] Step 1: Live credential is not confirmed to be \(currentAccount.email)'s; skipping backup rather than storing it under the wrong account")
-            } else if email != currentAccount.email {
-                log.warning("[switchAccount] Step 1: oauthAccount email (\(email)) != source (\(currentAccount.email)), skipping backup")
-            } else {
-                let saved = keychain.saveAccountBackup(token: currentToken, oauthAccount: currentOAuth, forAccountId: currentAccount.id.uuidString)
-                log.info("[switchAccount] Step 1: Backup saved: \(saved)")
+
+        // Both halves missing is the logged-out state: `claude auth logout` was
+        // run, or there simply is no sign-in yet. There is nothing to roll back
+        // TO, and restoring "signed out" is not a service anyone wants — so the
+        // switch proceeds. Refusing here would have made the app unable to do
+        // the one thing it exists for, exactly when the user needs it.
+        //
+        // Exactly ONE half readable is the dangerous case: the two are supposed
+        // to travel together, so this is either a partial write or a store that
+        // is failing intermittently, and a rollback could only put half of it
+        // back. Refuse before anything is written.
+        if (previousToken == nil) != (previousOAuthAccount == nil) {
+            log.error("[switchAccount] ABORT: only half of the current sign-in could be read (token=\(previousToken != nil), identity=\(previousOAuthAccount != nil)); refusing to switch on a partial snapshot")
+            throw ClaudeServiceError.liveCredentialsUnreadable
+        }
+        if previousToken == nil {
+            log.info("[switchAccount] Step 1: No live sign-in to back up (logged out); the switch will not have a rollback target")
+        }
+
+        let previousEmail = (previousOAuthAccount?["emailAddress"]?.value as? String) ?? "?"
+        if previousToken == nil {
+            // nothing to back up
+        } else if let currentAccount, !liveCredentialIsSource {
+            log.warning("[switchAccount] Step 1: Live credential is not confirmed to be \(currentAccount.email)'s; skipping backup rather than storing it under the wrong account")
+        } else if let currentAccount, previousEmail != currentAccount.email {
+            log.warning("[switchAccount] Step 1: oauthAccount email (\(previousEmail)) != source (\(currentAccount.email)), skipping backup")
+        } else if currentAccount == nil {
+            // No account to file it under — this is the hand-over after the
+            // active account was removed, or a first switch with nothing signed
+            // in. The live credential is still restored on failure; it just has
+            // nowhere to be stored as a backup.
+            log.info("[switchAccount] Step 1: No source account to back up to")
+        } else if let currentAccount, let previousToken, let previousOAuthAccount {
+            // F4: a failed save here used to be logged and ignored, and then
+            // Step 3 overwrote the live credential anyway — leaving the outgoing
+            // account with a stale or absent backup and no way back to it. The
+            // switch has written nothing yet, so refusing now is free.
+            guard keychain.saveAccountBackup(token: previousToken, oauthAccount: previousOAuthAccount, forAccountId: currentAccount.id.uuidString) else {
+                log.error("[switchAccount] ABORT: could not save \(currentAccount.email)'s backup; switching now would strand it")
+                throw ClaudeServiceError.sourceBackupFailed(email: currentAccount.email)
             }
-        } else {
-            log.warning("[switchAccount] Step 1: Could not read current token or oauthAccount")
+            log.info("[switchAccount] Step 1: Backup saved")
         }
 
         /// Restores the credentials the CLI held before Step 3 ran.
@@ -445,14 +501,39 @@ final class ClaudeService: @unchecked Sendable {
         /// them, so a failure that returns without this leaves the user signed
         /// out of the account they were on as well as the one they asked for,
         /// with no obvious way back other than a browser re-login.
-        func rollback(after reason: String) {
+        /// Both halves are attempted independently: stopping at the first
+        /// failure would leave the other half holding the target account's
+        /// credential, which is a worse mix than either single failure.
+        /// Set once Step 3 has written anything: after that point a failure
+        /// cannot simply be reported, because the live credentials are no longer
+        /// the ones the user started with.
+        var targetCredentialsWritten = false
+
+        func rollback(after reason: String, cause: Error?) throws {
             guard let previousToken, let previousOAuthAccount else {
-                log.error("[switchAccount] Rollback after \(reason) skipped: no pre-switch credentials were captured")
-                return
+                log.info("[switchAccount] Nothing to roll back to after \(reason): there was no live sign-in when the switch started")
+                guard targetCredentialsWritten else { return }
+                // The target's credentials ARE live now, and there is no previous
+                // sign-in to put back. Saying "the switch failed" and stopping
+                // would leave the app's model and the CLI's reality disagreeing
+                // silently — the exact class of bug this batch exists to remove.
+                log.error("[switchAccount] \(reason), and there was no previous sign-in to restore: \(targetAccount.email)'s credentials are now live but unverified")
+                throw ClaudeServiceError.switchLandedUnverified(email: targetAccount.email, cause: cause)
             }
             let tokenRestored = keychain.writeClaudeToken(previousToken)
             let oauthRestored = keychain.writeOAuthAccount(previousOAuthAccount)
-            log.info("[switchAccount] Rolled back to \(currentAccount.id) after \(reason): token=\(tokenRestored), oauthAccount=\(oauthRestored)")
+            log.info("[switchAccount] Rolled back to \(currentAccount?.id.uuidString ?? "the previous sign-in") after \(reason): token=\(tokenRestored), oauthAccount=\(oauthRestored)")
+            guard tokenRestored, oauthRestored else {
+                // The user is now signed in to neither account. Saying so is the
+                // whole point: a log line here is a silent lockout.
+                log.error("[switchAccount] ROLLBACK FAILED after \(reason): token=\(tokenRestored), oauthAccount=\(oauthRestored)")
+                throw ClaudeServiceError.rollbackFailed(
+                    email: currentAccount?.email ?? targetAccount.email,
+                    tokenRestored: tokenRestored,
+                    oauthRestored: oauthRestored,
+                    cause: cause
+                )
+            }
         }
 
         // 2. Target backup was resolved and validated by the caller.
@@ -461,36 +542,45 @@ final class ClaudeService: @unchecked Sendable {
         // 3. Write target token to keychain + target oauthAccount to ~/.claude.json
         log.info("[switchAccount] Step 3: Writing target credentials...")
         guard keychain.writeClaudeToken(targetBackup.token) else {
+            // `writeClaudeToken` deletes before it adds, so a failure here can
+            // have already removed the live token: restore, don't just report.
             log.error("[switchAccount] Step 3: Failed to write token to keychain!")
+            try rollback(after: "the token write failed", cause: ClaudeServiceError.keychainWriteFailed)
             throw ClaudeServiceError.keychainWriteFailed
         }
         guard keychain.writeOAuthAccount(targetBackup.oauthAccount) else {
             log.error("[switchAccount] Step 3: Failed to write oauthAccount to ~/.claude.json!")
-            rollback(after: "the oauthAccount write failed")
+            targetCredentialsWritten = true   // the token half is already live
+            try rollback(after: "the oauthAccount write failed", cause: ClaudeServiceError.oauthAccountWriteFailed)
             throw ClaudeServiceError.oauthAccountWriteFailed
         }
+        targetCredentialsWritten = true
         log.info("[switchAccount] Step 3: Both token and oauthAccount written")
 
         // 4. Verify
         log.info("[switchAccount] Step 4: Verifying with `claude auth status`...")
         let status: AuthStatus
         do {
-            status = try await getAuthStatus()
+            if let verify {
+                status = try await verify()
+            } else {
+                status = try await getAuthStatus()
+            }
         } catch {
             log.error("[switchAccount] Step 4: Could not read auth status: \(error.localizedDescription)")
-            rollback(after: "the verification call failed")
+            try rollback(after: "the verification call failed", cause: error)
             throw error
         }
         guard status.loggedIn else {
             log.error("[switchAccount] Step 4: Not logged in after switch!")
-            rollback(after: "the CLI reported no login")
+            try rollback(after: "the CLI reported no login", cause: ClaudeServiceError.switchVerificationFailed)
             throw ClaudeServiceError.switchVerificationFailed
         }
 
         if let email = status.email {
             guard email == targetAccount.email else {
                 log.error("[switchAccount] Step 4: Logged in as \(email) instead of \(targetAccount.email)")
-                rollback(after: "the CLI reported a different account")
+                try rollback(after: "the CLI reported a different account", cause: ClaudeServiceError.switchWrongAccount(expected: targetAccount.email, actual: email))
                 throw ClaudeServiceError.switchWrongAccount(expected: targetAccount.email, actual: email)
             }
             log.info("[switchAccount] Step 4: Switch verified — logged in as \(email)")
@@ -505,9 +595,9 @@ final class ClaudeService: @unchecked Sendable {
         // of reporting the target account as "wrong" (issue #18).
         let shadowedBy = status.shadowingAuthMethod ?? "unknown"
         log.warning("[switchAccount] Step 4: CLI reports authMethod=\(shadowedBy) and omits the account identity; verifying against the credential store instead")
-        guard credentialsOnDiskMatch(backup: targetBackup, email: targetAccount.email) else {
-            rollback(after: "the credential store did not match what we wrote")
-            throw ClaudeServiceError.switchVerificationFailed
+        guard credentialsOnDiskMatch(backup: targetBackup, email: targetAccount.email, store: store) else {
+            try rollback(after: "the credential store did not match what we wrote", cause: ClaudeServiceError.credentialStoreMismatch)
+            throw ClaudeServiceError.credentialStoreMismatch
         }
         log.info("[switchAccount] Step 4: Switch verified against the credential store (CLI identity hidden by \(shadowedBy))")
         return SwitchOutcome(shadowedBy: shadowedBy)
@@ -516,8 +606,8 @@ final class ClaudeService: @unchecked Sendable {
     /// Ground-truth check that does not depend on `claude auth status`: both
     /// halves of a switch — the keychain token and the `~/.claude.json` identity —
     /// must hold the target account.
-    private func credentialsOnDiskMatch(backup: AccountBackup, email: String) -> Bool {
-        let keychain = KeychainService.shared
+    private func credentialsOnDiskMatch(backup: AccountBackup, email: String, store: CredentialStore) -> Bool {
+        let keychain = store
 
         guard let liveToken = keychain.readClaudeToken(),
               let liveAccessToken = Self.extractAccessToken(from: liveToken),
@@ -536,11 +626,12 @@ final class ClaudeService: @unchecked Sendable {
         return true
     }
 
-    /// Capture the current Claude auth token + oauthAccount and associate with an account
-    func captureCurrentCredentials(forAccountId accountId: String) -> Bool {
+    /// Capture the current Claude auth token + oauthAccount and associate with
+    /// an account. The keychain work runs off the main thread.
+    func captureCurrentCredentials(forAccountId accountId: String) async -> Bool {
         log.info("[capture] Capturing credentials for account \(accountId)...")
         let keychain = KeychainService.shared
-        guard let token = keychain.readClaudeToken() else {
+        guard let token = await keychain.readClaudeTokenAsync() else {
             log.error("[capture] Failed: no token found in keychain")
             return false
         }
@@ -550,7 +641,11 @@ final class ClaudeService: @unchecked Sendable {
         }
         let email = (oauthAccount["emailAddress"]?.value as? String) ?? "?"
         log.info("[capture] Token + oauthAccount found (email=\(email)), saving backup...")
-        let result = keychain.saveAccountBackup(token: token, oauthAccount: oauthAccount, forAccountId: accountId)
+        guard let encoded = try? JSONEncoder().encode(AccountBackup(token: token, oauthAccount: oauthAccount)) else {
+            log.error("[capture] Failed: could not encode the captured backup")
+            return false
+        }
+        let result = await keychain.saveAccountBackupDataAsync(encoded, forAccountId: accountId)
         log.info("[capture] Save result: \(result)")
         return result
     }
@@ -761,6 +856,11 @@ enum ClaudeServiceError: LocalizedError {
     case switchVerificationFailed
     case switchWrongAccount(expected: String, actual: String)
     case backupCredentialsUnusable(email: String)
+    case liveCredentialsUnreadable
+    case sourceBackupFailed(email: String)
+    case credentialStoreMismatch
+    case switchLandedUnverified(email: String, cause: Error?)
+    case rollbackFailed(email: String, tokenRestored: Bool, oauthRestored: Bool, cause: Error?)
 
     var errorDescription: String? {
         switch self {
@@ -782,6 +882,21 @@ enum ClaudeServiceError: LocalizedError {
             return "Switch failed: expected \(expected) but got \(actual). Try removing and re-adding the account."
         case .backupCredentialsUnusable(let email):
             return "The stored credentials for \(email) are empty. Use re-authenticate to sign in again."
+        case .liveCredentialsUnreadable:
+            return "Only part of the current sign-in could be read, so the switch was cancelled. Nothing was changed; try again in a moment."
+        case .sourceBackupFailed(let email):
+            return "Could not save \(email)'s credentials before switching, so the switch was cancelled. Nothing was changed."
+        case .credentialStoreMismatch:
+            return "The credential store does not hold what the switch just wrote — something else changed it."
+        case .switchLandedUnverified(let email, let cause):
+            let why = cause.map { " (\($0.localizedDescription))" } ?? ""
+            return "\(email)'s credentials are now live but the switch could not be verified\(why), and there was no previous sign-in to restore. Check which account the Claude CLI is on."
+        case .rollbackFailed(let email, let tokenRestored, let oauthRestored, let cause):
+            let parts = [tokenRestored ? nil : "token", oauthRestored ? nil : "identity"].compactMap { $0 }
+            // The lockout is the urgent fact, but the reason the switch failed
+            // in the first place is what tells the user what to do differently.
+            let why = cause.map { " The switch failed because: \($0.localizedDescription)" } ?? ""
+            return "The switch failed and the previous sign-in could not be restored (\(parts.joined(separator: " + "))). Re-authenticate \(email) to recover.\(why)"
         }
     }
 }

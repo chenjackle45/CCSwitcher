@@ -38,10 +38,13 @@ enum LiveCredentialOwner: Equatable {
 /// wrote them. An unchanged fingerprint proves the credential did not change,
 /// whatever the identity block now claims.
 ///
-/// Residual ambiguity, deliberately left: if the credential rotates in the same
-/// window as an identity change, a local check cannot tell an external login
-/// from a desync, and the identity block is believed. Rotation without a
-/// matching identity change is the common case and stays anchored.
+/// A rotation the identity block follows (same account, new token) keeps the
+/// pairing. A rotation it does NOT follow makes the owner unknown rather than
+/// adopting whoever the block now names: the two events only have to land
+/// between two observations to look simultaneous, and with the app closed or
+/// the Mac asleep that gap has no bound. The cost is that signing in to a
+/// different account outside CCSwitcher needs one switch or re-authentication
+/// here before usage is attributed again.
 final class CredentialAnchorStore {
     private struct Anchor: Codable {
         var accountId: UUID
@@ -51,6 +54,27 @@ final class CredentialAnchorStore {
         /// next rotation would let the desync resume misfiling the moment the
         /// token rolls, which is exactly how the original swap went unnoticed.
         var isDesynced: Bool
+        /// Nothing ties the live credential to an account any more. Also sticky,
+        /// and also only `anchor()` clears it: every other way out would let a
+        /// rewritten identity block re-establish a pairing it cannot prove.
+        var ownerUnknown: Bool
+
+        init(accountId: UUID, fingerprint: String, isDesynced: Bool, ownerUnknown: Bool = false) {
+            self.accountId = accountId
+            self.fingerprint = fingerprint
+            self.isDesynced = isDesynced
+            self.ownerUnknown = ownerUnknown
+        }
+
+        /// Hand-written so a record saved by an older build — which has neither
+        /// flag — still decodes instead of being discarded as corrupt.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            accountId = try c.decode(UUID.self, forKey: .accountId)
+            fingerprint = try c.decode(String.self, forKey: .fingerprint)
+            isDesynced = try c.decodeIfPresent(Bool.self, forKey: .isDesynced) ?? false
+            ownerUnknown = try c.decodeIfPresent(Bool.self, forKey: .ownerUnknown) ?? false
+        }
     }
 
     private let defaults: UserDefaults
@@ -77,11 +101,16 @@ final class CredentialAnchorStore {
         log.info("[anchor] Live credential anchored to \(accountId) (\(short(anchor.fingerprint)))")
     }
 
-    /// Drop the anchor if it points at `accountId` (the account was removed).
+    /// The anchored account was removed: the pairing is gone, but the RECORD
+    /// stays. Deleting it would put the store back in its "nothing has ever been
+    /// anchored" state, which is the one state that trusts the identity block —
+    /// so a desynced credential could be re-adopted under whichever account the
+    /// block happens to name next.
     func forget(accountId: UUID) {
-        guard let stored = load(), stored.accountId == accountId else { return }
-        defaults.removeObject(forKey: key)
-        log.info("[anchor] Dropped anchor for removed account \(accountId)")
+        guard var stored = load(), stored.accountId == accountId, !stored.ownerUnknown else { return }
+        stored.ownerUnknown = true
+        save(stored)
+        log.info("[anchor] Anchored account \(accountId) was removed; live credential owner is now unknown")
     }
 
     /// Resolve who the live credential belongs to.
@@ -94,11 +123,23 @@ final class CredentialAnchorStore {
         let fingerprint = Self.fingerprint(of: accessToken)
 
         guard var stored = load() else {
-            // Nothing anchored yet (first run, or the account was re-added):
-            // the identity block is all there is to go on.
+            // No record has EVER been written: a fresh install, or the first
+            // launch after upgrading from a build without anchoring. Adopting
+            // the identity block once is the only way to take over an existing
+            // login without making the user sign in again — and it is the only
+            // place that trust is granted. `forget()` keeps the record around
+            // precisely so this state cannot recur later.
             guard let claimedAccountId else { return .unknown }
             save(Anchor(accountId: claimedAccountId, fingerprint: fingerprint, isDesynced: false))
+            log.info("[anchor] No record yet; adopting the identity block's \(claimedAccountId) once")
             return .owned(claimedAccountId)
+        }
+
+        if stored.ownerUnknown {
+            // Sticky. No fingerprint update, no write: only `anchor()` — a
+            // switch, login or re-authentication CCSwitcher performed itself —
+            // can establish a pairing again.
+            return .unknown
         }
 
         if stored.fingerprint == fingerprint {
@@ -122,14 +163,36 @@ final class CredentialAnchorStore {
             // nothing ties it to an account any more. Only a CCSwitcher-performed
             // write can re-establish the pairing.
             stored.fingerprint = fingerprint
+            stored.ownerUnknown = true
             save(stored)
             log.warning("[anchor] Credential rotated while desynced; owner is now unknown")
             return .unknown
         }
 
-        // Ordinary rotation by a running Claude Code session, or a login done
-        // outside CCSwitcher: the identity block moved with the credential.
-        guard let claimedAccountId else { return .unknown }
+        // The credential rotated. A running Claude Code session refreshing the
+        // token it already had is the common case, and the identity block still
+        // naming the anchored account is what says so — refresh the fingerprint
+        // and keep the pairing.
+        //
+        // The block naming someone ELSE is not evidence of anything: the two
+        // changes only have to land between two of our observations to look
+        // simultaneous, and that gap is unbounded (app closed, Mac asleep).
+        // Believing it there is how A's token gets adopted as B's — the exact
+        // swap this store exists to prevent — so the owner becomes unknown
+        // until CCSwitcher itself writes a pairing again.
+        guard let claimedAccountId, claimedAccountId == stored.accountId else {
+            stored.fingerprint = fingerprint
+            stored.ownerUnknown = true
+            save(stored)
+            if let claimedAccountId {
+                log.warning("[anchor] Credential rotated and the identity block moved to \(claimedAccountId); owner is now unknown")
+            } else {
+                // No claim at all: the identity block could not be read, or it
+                // names an account this app does not know about.
+                log.warning("[anchor] Credential rotated and the identity block names nobody this app knows (unreadable, or an account not in the list); owner is now unknown")
+            }
+            return .unknown
+        }
         save(Anchor(accountId: claimedAccountId, fingerprint: fingerprint, isDesynced: false))
         return .owned(claimedAccountId)
     }

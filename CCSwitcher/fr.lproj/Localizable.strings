@@ -82,17 +82,12 @@
 
 /* Account Switcher */
 "No Accounts" = "Aucun compte";
-"Add your current Claude Code account to get started." = "Ajoutez votre compte Claude Code actuel pour commencer.";
 "Custom label" = "Libellé personnalisé";
 "Edit label" = "Modifier le libellé";
 "Switch" = "Basculer";
 "Login New Account" = "Connecter un nouveau compte";
-"Add Current Account" = "Ajouter le compte actuel";
 "Waiting for browser login..." = "En attente de la connexion navigateur...";
 "Complete the login in your browser, then return here." = "Terminez la connexion dans votre navigateur, puis revenez ici.";
-"This will capture the currently logged-in Claude Code account." = "Ceci va capturer le compte Claude Code actuellement connecté.";
-"Cancel" = "Annuler";
-"Add Account" = "Ajouter un compte";
 "Re-authenticate (fix stale token)" = "Réauthentifier (réparer le jeton expiré)";
 "Remove account" = "Supprimer le compte";
 
@@ -124,9 +119,6 @@
 
 /* AppState Errors */
 "Claude CLI not found" = "Claude CLI introuvable";
-"Not logged in to Claude. Run 'claude auth login' first." = "Non connecté à Claude. Exécutez d'abord 'claude auth login'.";
-"Account already exists" = "Le compte existe déjà";
-"Could not capture auth token from keychain" = "Impossible de récupérer le jeton d'authentification du trousseau";
 "Login did not complete" = "La connexion n'a pas abouti";
 "Account already exists - credentials refreshed" = "Le compte existe déjà – identifiants actualisés";
 "Could not capture credentials" = "Impossible de récupérer les identifiants";
@@ -138,7 +130,6 @@
 "Token expired. Switch to this account to refresh." = "Jeton expiré. Basculez vers ce compte pour actualiser.";
 "API Rate Limited. Try again later." = "Limite de l'API atteinte. Réessayez plus tard.";
 "Could not fetch usage: %@" = "Impossible de récupérer l'utilisation : %@";
-"Claude reports %@, but the stored sign-in still belongs to %@. Switch accounts once, then add." = "Claude indique %1$@, mais la connexion enregistrée appartient toujours à %2$@. Changez de compte une fois, puis ajoutez-le.";
 "Claude reports %@, but the stored sign-in is still %@'s — another Claude Code session rewrote the identity. Switch accounts once to re-sync." = "Claude indique %1$@, mais la connexion enregistrée est toujours celle de %2$@ : une autre session Claude Code a réécrit l'identité. Changez de compte une fois pour resynchroniser.";
 "Can't tell which account the current sign-in belongs to. Switch accounts once to re-sync." = "Impossible de déterminer à quel compte appartient la connexion actuelle. Changez de compte une fois pour resynchroniser.";
 
@@ -178,7 +169,33 @@
 "Auto-switch" = "Changement automatique";
 "Switch account before hitting the limit" = "Changer de compte avant d'atteindre la limite";
 "Switch at" = "Changer à";
-"When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to the account with the most quota left. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "Lorsque l'utilisation sur 5 heures ou hebdomadaire du compte actif atteint ce niveau, CCSwitcher bascule vers le compte disposant du plus de quota restant. Vérifié à chaque actualisation ; un délai de 5 minutes évite les allers-retours rapides.";
 "Updated %@ ago" = "Mis à jour il y a %@";
 "Could not save the refreshed sign-in; will retry automatically." = "Impossible d'enregistrer les identifiants actualisés ; nouvelle tentative automatique.";
 "Credential storage is temporarily unavailable. Try again shortly." = "Le stockage des identifiants est temporairement indisponible. Réessayez dans un instant.";
+"Sign in to a Claude Code account to get started." = "Connectez-vous à un compte Claude Code pour commencer.";
+
+/* Weekly usage across accounts (#28) */
+"Weekly usage across accounts" = "Usage hebdomadaire, tous comptes";
+"%lld/%lld in this cycle" = "%lld/%lld dans ce cycle";
+"Total" = "Total";
+"Average" = "Moyenne";
+"Sum of every account's 7-day utilization. Each account has its own weekly quota, so the total can exceed 100%." = "Somme de l'utilisation sur 7 jours de tous les comptes. Chaque compte a son propre quota hebdomadaire, le total peut donc dépasser 100 %.";
+"Average 7-day utilization across the accounts that reported data." = "Utilisation moyenne sur 7 jours des comptes ayant renvoyé des données.";
+
+/* Auto-switch account list */
+"Accounts to switch to" = "Comptes cibles";
+"Tick the accounts auto-switch may move to, and drag to set the order. Nothing ticked means every account is allowed." = "Cochez les comptes vers lesquels le changement automatique peut basculer, et glissez pour définir l'ordre. Rien de coché : tous les comptes sont autorisés.";
+"Every account is allowed" = "Tous les comptes sont autorisés";
+"%lld selected" = "%lld sélectionné(s)";
+"Clear selection" = "Effacer la sélection";
+"in use" = "en cours";
+"Pick by" = "Choisir par";
+"Most quota left" = "Quota restant le plus élevé";
+"My order" = "Mon ordre";
+"When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "Lorsque l'usage sur 5 heures ou hebdomadaire du compte actif atteint ce niveau, CCSwitcher bascule vers un compte de la liste ci-dessous. Vérifié à chaque actualisation ; un délai de 5 minutes évite les allers-retours.";
+"Only the account in use is ticked, so auto-switch has nowhere to go" = "Seul le compte en cours est coché : le changement automatique n'a aucune cible";
+"Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it." = "%@ a été supprimé, mais le passage à un autre compte a échoué. Claude CLI est toujours connecté au compte supprimé — changez manuellement pour corriger.";
+"The stored credentials for %@ are empty. Use re-authenticate to sign in again." = "Les identifiants enregistrés pour %@ sont vides. Utilisez la ré-authentification pour vous reconnecter.";
+"More apps at xueshi.dev" = "Plus d'apps sur xueshi.dev";
+"© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
+"A switch or a login is in progress; try removing the account again in a moment." = "Un changement ou une connexion est en cours ; réessayez de supprimer le compte dans un instant.";

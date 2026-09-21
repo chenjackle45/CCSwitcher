@@ -90,6 +90,12 @@ final class KeychainService: Sendable {
     /// account's freshly written credentials.
     private let storeLock = NSLock()
 
+    /// Everything here blocks: `readClaudeToken` waits on a `security`
+    /// subprocess, the store calls go through `SecItem*` (which can sit on a
+    /// locked keychain or an authorization prompt). Run on this queue, awaited
+    /// from the main actor, so a refresh cycle never freezes the popover.
+    private let workQueue = DispatchQueue(label: "com.nowaylm.ccswitcherplus.keychain")
+
     private init() {
         self.claudeAccount = NSUserName()
 
@@ -111,6 +117,99 @@ final class KeychainService: Sendable {
         }
 
         log.info("init: claudeAccount=\(claudeAccount), backupsFile=\(backupsFilePath)")
+    }
+
+    // MARK: - Off-main-thread entry points
+    //
+    // Only `String` / `Data` / `Bool` and a small `Sendable` enum cross the
+    // boundary: `AccountBackup` carries `AnyCodable`, which is not `Sendable`,
+    // so it is encoded here and decoded by the caller.
+
+    private func offMainThread<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            workQueue.async { continuation.resume(returning: work()) }
+        }
+    }
+
+    func readClaudeTokenAsync() async -> String? {
+        await offMainThread { self.readClaudeToken() }
+    }
+
+    /// The email the identity block currently names, read off the main thread.
+    ///
+    /// `readOAuthAccount` decodes the WHOLE of `~/.claude.json` into
+    /// `[String: AnyCodable]` (200 KB and growing on a machine with many Claude
+    /// Code projects), and every caller of it here wants exactly this one
+    /// string — so only the string crosses back, which also keeps the
+    /// non-`Sendable` dictionary on one side.
+    func readOAuthAccountEmailAsync() async -> String? {
+        await offMainThread { self.readOAuthAccount()?["emailAddress"]?.value as? String }
+    }
+
+    /// One pass over the backup store, answering "does this account have a
+    /// usable stored credential?" for every account at once.
+    ///
+    /// The per-account lookup decodes the entire store each time, so asking for
+    /// eight accounts decoded it eight times — this asks once.
+    ///
+    /// Returns nil when the store could not be read. "No usable backups" and
+    /// "could not look" have different remedies (re-authenticate vs try again
+    /// later), which is the same distinction `lookupAccountBackup` keeps; an
+    /// empty set here would blame every account for a locked keychain.
+    func usableBackupIdsAsync() async -> Set<String>? {
+        await offMainThread {
+            self.storeLock.lock()
+            defer { self.storeLock.unlock() }
+            switch self.loadBackupStore() {
+            case .loaded(let store):
+                return Set(store.filter { $0.value.hasUsableCredentials }.keys)
+            case .empty:
+                return []
+            case .failed:
+                return nil
+            }
+        }
+    }
+
+    /// `lookupAccountBackup` with the backup handed back encoded.
+    enum BackupDataLookup: Sendable {
+        case found(Data)
+        case missing
+        case storeUnavailable
+    }
+
+    func lookupAccountBackupDataAsync(forAccountId accountId: String) async -> BackupDataLookup {
+        await offMainThread {
+            switch self.lookupAccountBackup(forAccountId: accountId) {
+            case .found(let backup):
+                guard let data = try? JSONEncoder().encode(backup) else {
+                    log.error("[getBackup] Found \(accountId) but could not re-encode it")
+                    return .storeUnavailable
+                }
+                return .found(data)
+            case .missing:
+                return .missing
+            case .storeUnavailable:
+                return .storeUnavailable
+            }
+        }
+    }
+
+    /// Saves an encoded `AccountBackup`. The whole read-modify-write stays in
+    /// one work item under `storeLock`, as the synchronous version does.
+    func saveAccountBackupDataAsync(_ backupJSON: Data, forAccountId accountId: String) async -> Bool {
+        await offMainThread {
+            guard let backup = try? JSONDecoder().decode(AccountBackup.self, from: backupJSON) else {
+                log.error("[saveBackup] Could not decode the backup handed to the async entry point")
+                return false
+            }
+            return self.saveAccountBackup(token: backup.token, oauthAccount: backup.oauthAccount, forAccountId: accountId)
+        }
+    }
+
+    @discardableResult
+    func removeAccountBackupAsync(forAccountId accountId: String) async -> Bool {
+        await offMainThread { self.removeAccountBackup(forAccountId: accountId) }
     }
 
     // MARK: - Claude Code Token Operations (keychain via `security` CLI)
@@ -244,16 +343,6 @@ final class KeychainService: Sendable {
         }
     }
 
-    /// Convenience for call sites where "missing" and "unavailable" demand the
-    /// same behavior (skip / treat as not switchable). Paths that tell the user
-    /// what to DO about it must use `lookupAccountBackup` instead.
-    func getAccountBackup(forAccountId accountId: String) -> AccountBackup? {
-        if case .found(let backup) = lookupAccountBackup(forAccountId: accountId) {
-            return backup
-        }
-        return nil
-    }
-
     @discardableResult
     func removeAccountBackup(forAccountId accountId: String) -> Bool {
         log.info("[removeBackup] Removing for accountId=\(accountId)")
@@ -269,11 +358,6 @@ final class KeychainService: Sendable {
         }
         store.removeValue(forKey: accountId)
         return saveBackupStore(store)
-    }
-
-    // Legacy compatibility — read token string only (for diagnostics)
-    func getAccountToken(forAccountId accountId: String) -> String? {
-        return getAccountBackup(forAccountId: accountId)?.token
     }
 
     // MARK: - App Keychain operations (Backups)
@@ -449,6 +533,26 @@ final class KeychainService: Sendable {
 
     // MARK: - `security` CLI (only for Claude's keychain entry)
 
+    /// How long a single `security` invocation may take before it is killed.
+    ///
+    /// Without this, one stuck invocation (locked keychain, an authorization
+    /// prompt this LSUIElement app has no window to show) blocks the serial
+    /// keychain queue, which blocks whoever holds the credential gate, which
+    /// leaves every button in the app silently doing nothing — with no error
+    /// and no last log line. A bounded failure is recoverable; that is not.
+    private static let securityTimeout: TimeInterval = 20
+
+    /// Kills `process` after `seconds` unless the returned item is cancelled.
+    private static func terminate(_ process: Process, after seconds: TimeInterval, label: String) -> DispatchWorkItem {
+        let item = DispatchWorkItem {
+            guard process.isRunning else { return }
+            log.error("[\(label)] `security` did not finish within \(Int(seconds))s; terminating it")
+            process.terminate()
+        }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + seconds, execute: item)
+        return item
+    }
+
     private func runSecurity(args: [String]) -> String? {
         let process = Process()
         let pipe = Pipe()
@@ -460,11 +564,13 @@ final class KeychainService: Sendable {
 
         do {
             try process.run()
+            let watchdog = Self.terminate(process, after: Self.securityTimeout, label: "runSecurity")
             // Drain the pipe before waiting. `security` can emit more than the
             // pipe buffer holds (16 KB) and then blocks in write() until someone
             // reads; waiting first deadlocks because the child never exits.
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
+            watchdog.cancel()
             guard process.terminationStatus == 0 else {
                 log.debug("[runSecurity] Exit \(process.terminationStatus) for: security \(args.prefix(3).joined(separator: " "))...")
                 return nil
@@ -486,7 +592,9 @@ final class KeychainService: Sendable {
         process.standardError = FileHandle.nullDevice
         do {
             try process.run()
+            let watchdog = Self.terminate(process, after: Self.securityTimeout, label: "runSecurityStatus")
             process.waitUntilExit()
+            watchdog.cancel()
             let ok = process.terminationStatus == 0
             if !ok {
                 log.debug("[runSecurityStatus] Exit \(process.terminationStatus) for: security \(args.prefix(3).joined(separator: " "))...")

@@ -5,6 +5,7 @@ import ServiceManagement
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var menuBarConfig: MenuBarConfig
+    @ObservedObject private var autoSwitchConfig = AutoSwitchConfig.shared
     @AppStorage("refreshInterval") private var refreshInterval: Double = 300
     @AppStorage("showFullEmail") private var showFullEmail = false
     @AppStorage("showInDock") private var showInDock = false
@@ -71,9 +72,18 @@ struct SettingsView: View {
                         }
                         Slider(value: $autoSwitchThreshold, in: 50...99, step: 1)
                     }
-                    Text("When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to the account with the most quota left. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping.")
+                    Picker("Pick by", selection: $autoSwitchConfig.policy) {
+                        Text("Most quota left").tag(AutoSwitchPolicy.mostHeadroom)
+                        Text("My order").tag(AutoSwitchPolicy.listOrder)
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text("When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+
+                    AutoSwitchTargetsSettingsView()
+                        .environmentObject(appState)
                 }
             }
 
