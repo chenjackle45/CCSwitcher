@@ -38,11 +38,12 @@ targets:
       path: CCSwitcher/Info.plist
       properties:
         LSUIElement: true
-        CFBundleDisplayName: $(PRODUCT_NAME)
+        CFBundleDisplayName: "CCSwitcher+"
+        CFBundleName: "CCSwitcher+"
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleURLTypes:
-          - CFBundleURLName: me.xueshi.ccswitcher
+          - CFBundleURLName: me.xueshi.ccswitcherplus
             CFBundleURLSchemes:
               - ccswitcher
         # Sparkle: feed URL points at the always-latest release's appcast asset.
@@ -53,9 +54,9 @@ targets:
         SUPublicEDKey: N9jOZ2Xyo63FdNvkDCRiMwXFnFglOqTdmx6nw7ZwTS4=
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: me.xueshi.ccswitcher
+        PRODUCT_BUNDLE_IDENTIFIER: me.xueshi.ccswitcherplus
         CODE_SIGN_ENTITLEMENTS: CCSwitcher/Resources/CCSwitcher.entitlements
-        PRODUCT_NAME: CCSwitcher
+        PRODUCT_NAME: CCSwitcherPlus
         MARKETING_VERSION: "1.12.0"
         CURRENT_PROJECT_VERSION: "66"
         COMBINE_HIDPI_IMAGES: true
@@ -65,7 +66,7 @@ targets:
       path: CCSwitcher/Resources/CCSwitcher.entitlements
       properties:
         com.apple.security.application-groups:
-          - G9J8D2T6DV.me.xueshi.ccswitcher
+          - G9J8D2T6DV.me.xueshi.ccswitcherplus
     dependencies:
       - target: CCSwitcherWidgetExtension
         embed: true
@@ -81,14 +82,14 @@ targets:
     info:
       path: CCSwitcherWidget/Info.plist
       properties:
-        CFBundleDisplayName: CCSwitcher Widget
+        CFBundleDisplayName: "CCSwitcher+ Widget"
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         EXAppExtensionAttributes:
           EXExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: me.xueshi.ccswitcher.widget
+        PRODUCT_BUNDLE_IDENTIFIER: me.xueshi.ccswitcherplus.widget
         CODE_SIGN_ENTITLEMENTS: CCSwitcherWidget/Resources/CCSwitcherWidget.entitlements
         PRODUCT_NAME: CCSwitcherWidgetExtension
         MARKETING_VERSION: "1.12.0"
@@ -105,4 +106,4 @@ targets:
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.application-groups:
-          - G9J8D2T6DV.me.xueshi.ccswitcher
+          - G9J8D2T6DV.me.xueshi.ccswitcherplus

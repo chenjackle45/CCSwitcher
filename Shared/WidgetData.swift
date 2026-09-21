@@ -31,7 +31,7 @@ struct WidgetData: Codable {
     // Management on `group.<bundle-id>` style identifiers; the
     // `<TEAMID>.<bundle-id>` form is auto-authorized for Developer-ID-signed
     // apps without a provisioning profile and avoids the prompt entirely.
-    private static let appGroupID = "G9J8D2T6DV.me.xueshi.ccswitcher"
+    private static let appGroupID = "G9J8D2T6DV.me.xueshi.ccswitcherplus"
     private static let fileName = "widget-data.json"
 
     private static var sharedContainerURL: URL? {
