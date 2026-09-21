@@ -371,11 +371,20 @@ final class ClaudeService: @unchecked Sendable {
     }
 
     /// Extract access token string from a token JSON (keychain format)
+    ///
+    /// An `accessToken` that is present but empty counts as absent. An emptied
+    /// backup still carries the field, so returning it let callers send
+    /// `Authorization: Bearer ` — which the usage endpoint answers with 429,
+    /// not 401. The account then sat parked behind a server-given Retry-After
+    /// and read as "rate-limited" for hours, while its real state was "this
+    /// backup can no longer log anyone in". Measured against the live
+    /// endpoint: empty bearer -> 429, invalid bearer -> 401.
     static func extractAccessToken(from tokenJSON: String) -> String? {
         guard let data = tokenJSON.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let oauth = json["claudeAiOauth"] as? [String: Any],
-              let accessToken = oauth["accessToken"] as? String else {
+              let accessToken = oauth["accessToken"] as? String,
+              !accessToken.isEmpty else {
             return nil
         }
         return accessToken
