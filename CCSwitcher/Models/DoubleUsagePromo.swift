@@ -1,7 +1,7 @@
 import Foundation
 
 /// Anthropic's limited-time "double usage" promo logic, centralized so the
-/// menu-bar icon, the popover banner, and the app lifecycle all agree.
+/// popover banner and the app lifecycle agree.
 enum DoubleUsagePromo {
     /// Inclusive start / exclusive end of the promo campaign window.
     private static func campaignBounds() -> (start: Date, end: Date)? {
@@ -25,23 +25,5 @@ enum DoubleUsagePromo {
     static func isCampaignActive(at date: Date = Date()) -> Bool {
         guard let bounds = campaignBounds() else { return false }
         return date >= bounds.start && date < bounds.end
-    }
-
-    /// True if double usage is *currently* in effect at `date`: inside the
-    /// campaign window AND outside the 8 AM–2 PM ET weekday peak window
-    /// (weekends are always double). Drives the filled menu-bar icon.
-    static func isActive(at date: Date = Date()) -> Bool {
-        guard isCampaignActive(at: date) else { return false }
-        guard let etTimeZone = TimeZone(identifier: "America/New_York") else { return false }
-
-        var etCalendar = Calendar(identifier: .gregorian)
-        etCalendar.timeZone = etTimeZone
-
-        let weekday = etCalendar.component(.weekday, from: date)
-        if weekday == 1 || weekday == 7 { return true } // Sun / Sat
-
-        let hour = etCalendar.component(.hour, from: date)
-        // 8 AM–2 PM ET on weekdays is normal; everything else is double.
-        return !(hour >= 8 && hour < 14)
     }
 }

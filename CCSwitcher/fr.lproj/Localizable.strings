@@ -22,7 +22,6 @@
 "5 minutes" = "5 minutes";
 "10 minutes" = "10 minutes";
 "Show account name in menu bar" = "Afficher le nom du compte dans la barre des menus";
-"Show head icon in menu bar" = "Afficher l'icône de tête dans la barre des menus";
 "Show full email address" = "Afficher l'adresse e-mail complète";
 "Launch at login" = "Lancer au démarrage";
 
@@ -55,7 +54,6 @@
 "Token expired. Switch to this account in Claude Code to refresh." = "Jeton expiré. Basculez vers ce compte dans Claude Code pour actualiser.";
 "Session" = "Session";
 "Weekly" = "Hebdomadaire";
-"Limiting" = "Limitant";
 "Extra usage" = "Utilisation supplémentaire";
 "On" = "Activé";
 "Off" = "Désactivé";
@@ -179,3 +177,9 @@
 "Updated %@ ago" = "Mis à jour il y a %@";
 "Could not save the refreshed sign-in; will retry automatically." = "Impossible d'enregistrer les identifiants actualisés ; nouvelle tentative automatique.";
 "Credential storage is temporarily unavailable. Try again shortly." = "Le stockage des identifiants est temporairement indisponible. Réessayez dans un instant.";
+
+/* Usage numbers */
+"Usage numbers" = "Affichage de l'utilisation";
+"Used" = "Utilisé";
+"Remaining" = "Restant";
+"%lld%% left" = "%lld %% restant";

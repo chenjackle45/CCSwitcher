@@ -22,7 +22,6 @@
 "5 minutes" = "5 minutes";
 "10 minutes" = "10 minutes";
 "Show account name in menu bar" = "Show account name in menu bar";
-"Show head icon in menu bar" = "Show head icon in menu bar";
 "Show full email address" = "Show full email address";
 "Launch at login" = "Launch at login";
 
@@ -55,7 +54,6 @@
 "Token expired. Switch to this account in Claude Code to refresh." = "Token expired. Switch to this account in Claude Code to refresh.";
 "Session" = "Session";
 "Weekly" = "Weekly";
-"Limiting" = "Limiting";
 "Extra usage" = "Extra usage";
 "On" = "On";
 "Off" = "Off";
@@ -183,3 +181,9 @@
 "Updated %@ ago" = "Updated %@ ago";
 "Could not save the refreshed sign-in; will retry automatically." = "Could not save the refreshed sign-in; will retry automatically.";
 "Credential storage is temporarily unavailable. Try again shortly." = "Credential storage is temporarily unavailable. Try again shortly.";
+
+/* Usage numbers */
+"Usage numbers" = "Usage numbers";
+"Used" = "Used";
+"Remaining" = "Remaining";
+"%lld%% left" = "%lld%% left";

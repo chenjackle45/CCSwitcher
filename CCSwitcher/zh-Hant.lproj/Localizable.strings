@@ -22,7 +22,6 @@
 "5 minutes" = "5 分鐘";
 "10 minutes" = "10 分鐘";
 "Show account name in menu bar" = "在選單列顯示帳號名稱";
-"Show head icon in menu bar" = "在選單列顯示頭像圖示";
 "Show full email address" = "顯示完整電子郵件地址";
 "Launch at login" = "登入時啟動";
 
@@ -55,7 +54,6 @@
 "Token expired. Switch to this account in Claude Code to refresh." = "權杖已過期。請在 Claude Code 中切換到此帳號以重新整理。";
 "Session" = "工作階段";
 "Weekly" = "每週";
-"Limiting" = "受限中";
 "Extra usage" = "額外用量";
 "On" = "開啟";
 "Off" = "關閉";
@@ -181,3 +179,9 @@
 "Credential storage is temporarily unavailable. Try again shortly." = "憑證儲存暫時不可用。請稍後再試。";
 "More apps at xueshi.dev" = "作者的其他 App：xueshi.dev";
 "© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
+
+/* Usage numbers */
+"Usage numbers" = "用量數字";
+"Used" = "已用";
+"Remaining" = "剩餘";
+"%lld%% left" = "剩 %lld%%";

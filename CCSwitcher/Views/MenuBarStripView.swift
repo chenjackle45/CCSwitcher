@@ -7,8 +7,8 @@ private struct StripWidthKey: PreferenceKey {
     }
 }
 
-/// The full content rendered inside the `NSStatusItem` button: the app icon
-/// followed by every enabled module, laid out horizontally. Each module is a
+/// The full content rendered inside the `NSStatusItem` button: every enabled
+/// module, laid out horizontally (or a fallback icon when none is enabled). Each module is a
 /// two-line iStats-style cell. Hosted in an `NSHostingController` so it is free
 /// of `MenuBarExtra`'s single-line / single-element label constraints.
 ///
@@ -26,7 +26,6 @@ struct MenuBarStripView: View {
     @AppStorage("showFullEmail") private var showFullEmail = false
 
     @State private var tick = Date()
-    @State private var iconFilled = false
     // Polled refresh. ObservableObject change delivery is unreliable for a
     // SwiftUI view hosted in an NSStatusItem, so we re-read AppState/config on
     // a short interval (the pattern menu-bar monitors like iStats/Stats use).
@@ -35,8 +34,10 @@ struct MenuBarStripView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if config.showsHeadIcon {
-                Image(systemName: iconFilled ? "brain.head.profile.fill" : "brain.head.profile")
+            // With no module enabled the status item would shrink to an
+            // empty, near-invisible sliver; keep something to click on.
+            if config.modules.isEmpty {
+                Image(systemName: "gauge.with.dots.needle.33percent")
                     .font(.system(size: 14))
             }
 
@@ -63,8 +64,6 @@ struct MenuBarStripView: View {
         }
         .onReceive(tickTimer) { date in
             tick = date
-            iconFilled = DoubleUsagePromo.isActive(at: date)
         }
-        .onAppear { iconFilled = DoubleUsagePromo.isActive(at: Date()) }
     }
 }

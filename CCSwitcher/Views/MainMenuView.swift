@@ -210,9 +210,8 @@ struct MainMenuView: View {
     }
     
     private func isPromoActive() -> Bool {
-        // Banner visibility tracks the campaign window; the menu-bar icon uses
-        // `DoubleUsagePromo.isActive` for the currently-doubled state. Both now
-        // share one source of truth (no duplicated date logic).
+        // Banner visibility tracks the campaign window (single source of truth
+        // in `DoubleUsagePromo`, no duplicated date logic).
         DoubleUsagePromo.isCampaignActive()
     }
     
@@ -246,17 +245,13 @@ struct MainMenuView: View {
 
     private var headerView: some View {
         HStack(spacing: 10) {
-            Image(systemName: "brain.head.profile")
-                .font(.title2)
-                .foregroundStyle(.brand)
-
             VStack(alignment: .leading, spacing: 3) {
                 if let account = appState.activeAccount {
                     HStack(spacing: 6) {
                         Text(account.effectiveDisplayName(obfuscated: !showFullEmail))
                             .font(.headline)
                         if let sub = account.displaySubscriptionType {
-                            Badge(text: sub, color: .brand)
+                            Badge(text: sub, color: .textSecondary, style: .outline)
                         }
                     }
                     Text(account.displayEmail(obfuscated: !showFullEmail))
@@ -336,7 +331,7 @@ struct MainMenuView: View {
         HStack {
             if let error = appState.errorMessage {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.usageWarning)
                     .font(.caption)
                 Text(error)
                     .font(.caption2)

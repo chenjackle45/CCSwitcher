@@ -37,10 +37,6 @@ final class MenuBarConfig: ObservableObject {
         didSet { persist() }
     }
 
-    @Published var showsHeadIcon: Bool {
-        didSet { persistShowsHeadIcon() }
-    }
-
     /// Opt-in switch for the custom limit-bar palette. Off by default so an
     /// upgrade never silently repaints anyone's menu bar or Usage dashboard.
     @Published var customizesLimitBarColors: Bool {
@@ -64,7 +60,6 @@ final class MenuBarConfig: ObservableObject {
     }
 
     private let storageKey = MenuBarModuleStore.storageKey
-    private let showsHeadIconKey = "menuBarShowsHeadIcon"
     private let customizesLimitBarColorsKey = "customizesLimitBarColors"
     private let sessionLimitBarColorKey = "sessionLimitBarColor"
     private let weeklyLimitBarColorKey = "weeklyLimitBarColor"
@@ -77,11 +72,6 @@ final class MenuBarConfig: ObservableObject {
         MenuBarModuleStore.migrateIfNeeded()
         let data = UserDefaults.standard.data(forKey: storageKey) ?? Data()
         self.modules = MenuBarModuleStore.decode(data)
-        if UserDefaults.standard.object(forKey: showsHeadIconKey) == nil {
-            self.showsHeadIcon = true
-        } else {
-            self.showsHeadIcon = UserDefaults.standard.bool(forKey: showsHeadIconKey)
-        }
         // Absent key reads as false, which is exactly the default we want.
         self.customizesLimitBarColors = UserDefaults.standard.bool(forKey: customizesLimitBarColorsKey)
         self.sessionLimitBarColorHex = UserDefaults.standard.string(forKey: sessionLimitBarColorKey)
@@ -99,10 +89,6 @@ final class MenuBarConfig: ObservableObject {
 
     private func persist() {
         UserDefaults.standard.set(MenuBarModuleStore.encode(modules), forKey: storageKey)
-    }
-
-    private func persistShowsHeadIcon() {
-        UserDefaults.standard.set(showsHeadIcon, forKey: showsHeadIconKey)
     }
 
     private func persistCustomizesLimitBarColors() {
@@ -173,19 +159,15 @@ final class MenuBarConfig: ObservableObject {
         }
     }
 
-    /// The built-in palettes, kept verbatim from before the colors were
-    /// configurable. `.menuBar` is monochrome on purpose: it has to adapt to a
-    /// light or dark menu bar, which no fixed hex can do.
+    /// The built-in palettes. `.menuBar` is monochrome on purpose: it has to
+    /// adapt to a light or dark menu bar, which no fixed hex can do.
     private static func stockColor(utilization: Double?, context: LimitBarContext) -> Color {
         switch context {
         case .menuBar:
             guard let utilization, utilization > 90 else { return .primary }
-            return .red
+            return .usageCritical
         case .dashboard:
-            let pct = utilization ?? 0
-            if pct >= 90 { return .red }
-            if pct >= 60 { return .orange }
-            return .green
+            return UsagePalette.level(utilization ?? 0).adaptive
         }
     }
 

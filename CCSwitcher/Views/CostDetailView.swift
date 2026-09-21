@@ -36,7 +36,7 @@ struct CostDetailView: View {
             Text(formatCost(summary.todayCost))
                 .font(.system(size: 36, weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(.green)
+                .foregroundStyle(.textPrimary)
 
             if let today, !today.modelBreakdown.isEmpty {
                 Divider()
@@ -163,7 +163,7 @@ struct CostDetailView: View {
 
             GeometryReader { geo in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isToday ? Color.brand : Color.blue.opacity(0.6))
+                    .fill(isToday ? Color.brand : Color.usageNormal.opacity(0.6))
                     .frame(width: max(2, geo.size.width * barRatio), height: 8)
             }
             .frame(height: 8)
@@ -203,7 +203,7 @@ struct CostDetailView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.caption2)
-                            .foregroundStyle(.green)
+                            .foregroundStyle(.brand)
                         Text("Verified against ccusage \(v.ccusageVersion) on \(v.verifiedOn) — \(v.windowDays)-day total matched to the cent.")
                             .font(.caption2)
                             .foregroundStyle(.textSecondary)

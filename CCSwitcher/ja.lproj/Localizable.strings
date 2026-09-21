@@ -22,7 +22,6 @@
 "5 minutes" = "5 分";
 "10 minutes" = "10 分";
 "Show account name in menu bar" = "メニューバーにアカウント名を表示";
-"Show head icon in menu bar" = "メニューバーにヘッドアイコンを表示";
 "Show full email address" = "メールアドレスを完全に表示";
 "Launch at login" = "ログイン時に起動";
 
@@ -55,7 +54,6 @@
 "Token expired. Switch to this account in Claude Code to refresh." = "トークンが期限切れです。Claude Code でこのアカウントに切り替えて更新してください。";
 "Session" = "セッション";
 "Weekly" = "週間";
-"Limiting" = "制限中";
 "Extra usage" = "追加使用量";
 "On" = "オン";
 "Off" = "オフ";
@@ -179,3 +177,9 @@
 "Updated %@ ago" = "%@前に更新";
 "Could not save the refreshed sign-in; will retry automatically." = "更新されたログイン情報を保存できませんでした。自動的に再試行します。";
 "Credential storage is temporarily unavailable. Try again shortly." = "認証情報ストレージは一時的に利用できません。しばらくしてからもう一度お試しください。";
+
+/* Usage numbers */
+"Usage numbers" = "使用量の表示";
+"Used" = "使用済み";
+"Remaining" = "残り";
+"%lld%% left" = "残り %lld%%";

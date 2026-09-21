@@ -1006,10 +1006,11 @@ final class AppState: ObservableObject {
 
     // MARK: - Widget
 
-    private func updateWidgetData() {
+    func updateWidgetData() {
         let widgetAccounts = accounts.map { account in
             let usage = accountUsage[account.id]
             let error = accountUsageErrors[account.id]
+            let fable = usage?.displayWindows.first { !$0.isSession && $0.scopeName == "Fable" }
             return WidgetAccountData(
                 email: account.displayEmail(obfuscated: !UserDefaults.standard.bool(forKey: "showFullEmail")),
                 displayName: account.effectiveDisplayName(obfuscated: !UserDefaults.standard.bool(forKey: "showFullEmail")),
@@ -1019,6 +1020,8 @@ final class AppState: ObservableObject {
                 sessionResetTime: usage?.fiveHour?.resetTimeString,
                 weeklyUtilization: usage?.sevenDay?.utilization,
                 weeklyResetTime: usage?.sevenDay?.resetTimeString,
+                fableWeeklyUtilization: fable?.utilization,
+                fableWeeklyResetTime: fable?.window.resetTimeString,
                 extraUsageEnabled: usage?.extraUsage?.isEnabled,
                 hasError: error != nil,
                 errorMessage: error?.message
@@ -1032,7 +1035,8 @@ final class AppState: ObservableObject {
             activeCodingTime: activityStats.activeCodingTimeString,
             linesWritten: activityStats.linesWritten,
             modelUsage: activityStats.modelUsage,
-            lastUpdated: Date()
+            lastUpdated: Date(),
+            showsRemaining: UserDefaults.standard.bool(forKey: UsageDisplaySetting.showsRemainingKey)
         )
         data.save()
         WidgetCenter.shared.reloadAllTimelines()

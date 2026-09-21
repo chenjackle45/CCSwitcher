@@ -9,14 +9,6 @@ enum AIProviderType: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var iconName: String {
-        switch self {
-        case .claudeCode: return "brain.head.profile"
-        case .gemini: return "sparkles"
-        case .codex: return "chevron.left.forwardslash.chevron.right"
-        }
-    }
-
     var configDirectory: String {
         switch self {
         case .claudeCode: return "~/.claude"

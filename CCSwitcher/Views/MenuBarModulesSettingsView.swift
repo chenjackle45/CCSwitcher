@@ -80,8 +80,8 @@ struct MenuBarModulesSettingsView: View {
 
     private var previewBar: some View {
         HStack(spacing: 10) {
-            if config.showsHeadIcon {
-                Image(systemName: "brain.head.profile")
+            if !rows.contains(where: \.isEnabled) {
+                Image(systemName: "gauge.with.dots.needle.33percent")
                     .font(.system(size: 13))
             }
             ForEach(rows.filter(\.isEnabled)) { row in

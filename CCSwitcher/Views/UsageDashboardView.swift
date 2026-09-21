@@ -25,6 +25,7 @@ struct UsageDashboardView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var menuBarConfig: MenuBarConfig
     @AppStorage("showFullEmail") private var showFullEmail = false
+    @AppStorage(UsageDisplaySetting.showsRemainingKey) private var showsRemainingUsage = false
 
     var body: some View {
         ScrollView {
@@ -91,7 +92,7 @@ struct UsageDashboardView: View {
             HStack(spacing: 8) {
                 Image(systemName: "dollarsign.circle")
                     .font(.subheadline)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(.brand)
                 Text("Today's API-Equivalent Cost")
                     .font(.subheadline.weight(.medium))
                     .lineLimit(1)
@@ -101,7 +102,7 @@ struct UsageDashboardView: View {
             StatWithTooltip(tooltip: Self.costDisclaimer) {
                 Text(cost >= 1 ? String(format: "$%.2f", cost) : String(format: "$%.4f", cost))
                     .font(.title.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(.green)
+                    .foregroundStyle(.textPrimary)
             }
         }
         .cardStyle()
@@ -188,13 +189,7 @@ struct UsageDashboardView: View {
     }
 
     private func modelColor(_ name: String) -> Color {
-        switch name {
-        case "Fable": return .purple
-        case "Opus": return .brand
-        case "Sonnet": return .blue
-        case "Haiku": return .green
-        default: return .gray
-        }
+        UsagePalette.model(name).adaptive
     }
 
     // MARK: - Per-Account Card
@@ -209,7 +204,7 @@ struct UsageDashboardView: View {
             } else if let errorState = appState.accountUsageErrors[account.id] {
                 HStack {
                     Image(systemName: errorState.isRateLimited ? "timer" : (errorState.isExpired ? "exclamationmark.triangle" : "xmark.circle"))
-                        .foregroundStyle(errorState.isExpired ? .yellow : .red)
+                        .foregroundStyle(errorState.isExpired ? .usageWarning : .usageCritical)
                     Text(errorState.message)
                         .font(.caption)
                         .foregroundStyle(.textSecondary)
@@ -257,22 +252,18 @@ struct UsageDashboardView: View {
     @ViewBuilder
     private func accountHeader(_ account: Account) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: account.provider.iconName)
-                .font(.subheadline)
-                .foregroundStyle(account.isActive ? .brand : .secondary)
-
             Text(account.displayEmail(obfuscated: !showFullEmail))
                 .font(.subheadline.weight(.medium))
                 .lineLimit(1)
 
             if account.isActive {
-                Badge(text: String(localized: "Active", bundle: L10n.bundle), color: .green)
+                Badge(text: String(localized: "Active", bundle: L10n.bundle), color: .brand, style: .solid)
             }
 
             Spacer()
 
             if let sub = account.displaySubscriptionType {
-                Badge(text: sub, color: .brand)
+                Badge(text: sub, color: .textSecondary, style: .outline)
             }
         }
     }
@@ -283,9 +274,8 @@ struct UsageDashboardView: View {
             usageRow(
                 title: title(for: row),
                 resetText: row.window.resetTimeString,
-                utilization: row.utilization ?? 0,
-                kind: row.isSession ? .session : .weekly,
-                isLimiting: row.isLimiting
+                utilization: row.utilization,
+                kind: row.isSession ? .session : .weekly
             )
         }
     }
@@ -304,8 +294,8 @@ struct UsageDashboardView: View {
     private func extraUsageRow(_ extra: ExtraUsage?) -> some View {
         if let extra {
             let enabled = extra.isEnabled == true
-            let iconColor: Color = enabled ? .orange : .gray
-            let statusColor: Color = enabled ? .orange : .gray
+            let iconColor: Color = enabled ? .usageWarning : .gray
+            let statusColor: Color = enabled ? .usageWarning : .gray
             HStack(spacing: 6) {
                 Image(systemName: enabled ? "bolt.fill" : "bolt.slash")
                     .font(.caption)
@@ -323,17 +313,15 @@ struct UsageDashboardView: View {
 
     // MARK: - Usage Row
 
-    private func usageRow(title: String, resetText: String?, utilization: Double, kind: LimitBarKind, isLimiting: Bool = false) -> some View {
-        let fillColor = menuBarConfig.limitBarColor(for: kind, utilization: utilization, context: .dashboard)
+    private func usageRow(title: String, resetText: String?, utilization: Double?, kind: LimitBarKind) -> some View {
+        let pct = utilization ?? 0
+        let fillColor = menuBarConfig.limitBarColor(for: kind, utilization: pct, context: .dashboard)
 
         return VStack(spacing: 5) {
             HStack {
                 Text(title)
                     .font(.caption)
                     .foregroundStyle(.textSecondary)
-                if isLimiting {
-                    Badge(text: String(localized: "Limiting", bundle: L10n.bundle), color: .orange)
-                }
                 Spacer()
                 if let resetText {
                     Text("Resets in \(resetText)")
@@ -351,15 +339,16 @@ struct UsageDashboardView: View {
 
                         RoundedRectangle(cornerRadius: 3)
                             .fill(fillColor)
-                            .frame(width: max(0, geo.size.width * min(utilization / 100.0, 1.0)), height: 7)
+                            .frame(width: max(0, geo.size.width * min(pct / 100.0, 1.0)), height: 7)
                     }
                 }
                 .frame(height: 7)
 
-                Text("\(Int(utilization))%")
+                Text(utilization.map { UsagePalette.percentText($0, showsRemaining: showsRemainingUsage) } ?? "—")
                     .font(.caption.weight(.medium).monospacedDigit())
                     .foregroundStyle(fillColor)
-                    .frame(width: 34, alignment: .trailing)
+                    .fixedSize()
+                    .frame(minWidth: 34, alignment: .trailing)
             }
         }
     }

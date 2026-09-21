@@ -26,8 +26,16 @@ enum MenuBarModule: String, Codable, CaseIterable, Identifiable {
         case .weeklyBar:       return "7D"
         case .weeklyBarPlain:  return "7D"
         case .dailyCost:       return "TODAY"
-        case .sessionReset:    return "5H↻"
-        case .weeklyReset:     return "7D↻"
+        case .sessionReset:    return "5H"
+        case .weeklyReset:     return "7D"
+        }
+    }
+
+    /// SF Symbol drawn after `compactLabel` (reset countdowns), if any.
+    var compactLabelSymbol: String? {
+        switch self {
+        case .sessionReset, .weeklyReset: return "arrow.clockwise"
+        default:                          return nil
         }
     }
 

@@ -20,9 +20,6 @@ enum AppStyle {
     // Progress Bar
     static let barCornerRadius: CGFloat = 3
     static let barHeight: CGFloat = 7
-
-    // Colors
-    static let buttonTextColor = Color(red: 0x42 / 255, green: 0x42 / 255, blue: 0x42 / 255)
 }
 
 // MARK: - Card Style Modifier
