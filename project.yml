@@ -24,7 +24,7 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     ENABLE_HARDENED_RUNTIME: false
     CODE_SIGN_STYLE: Automatic
-    DEVELOPMENT_TEAM: 584KQTRF3B
+    DEVELOPMENT_TEAM: G9J8D2T6DV
     SWIFT_STRICT_CONCURRENCY: targeted
 
 targets:
@@ -65,7 +65,7 @@ targets:
       path: CCSwitcher/Resources/CCSwitcher.entitlements
       properties:
         com.apple.security.application-groups:
-          - 584KQTRF3B.me.xueshi.ccswitcher
+          - G9J8D2T6DV.me.xueshi.ccswitcher
     dependencies:
       - target: CCSwitcherWidgetExtension
         embed: true
@@ -96,7 +96,7 @@ targets:
         SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: 584KQTRF3B
+        DEVELOPMENT_TEAM: G9J8D2T6DV
         SWIFT_STRICT_CONCURRENCY: targeted
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks"
         SKIP_INSTALL: true
@@ -105,4 +105,4 @@ targets:
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.application-groups:
-          - 584KQTRF3B.me.xueshi.ccswitcher
+          - G9J8D2T6DV.me.xueshi.ccswitcher
