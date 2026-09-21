@@ -1240,7 +1240,12 @@ final class AppState: ObservableObject {
                 tokenJSON = await backup(forAccountId: account.id.uuidString)?.token
             }
             guard let tokenJSON, let accessToken = ClaudeService.extractAccessToken(from: tokenJSON) else {
+                // Say so on the card. Skipping silently leaves the "waiting for
+                // usage data" hourglass up, and for an account whose backup has
+                // no secret left that wait never ends — the health check names
+                // it, but only in the log.
                 log.warning("[fetchUsage] No token for \(account.email), skipping")
+                accountUsageErrors[account.id] = UsageErrorState(isExpired: true, isRateLimited: false, message: String(localized: "Session expired. Re-authenticate (↻) to fix.", bundle: L10n.bundle))
                 continue
             }
             do {
