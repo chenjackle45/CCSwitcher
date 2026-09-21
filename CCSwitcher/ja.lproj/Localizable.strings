@@ -160,7 +160,7 @@
 "Pick by" = "選び方";
 "Most quota left" = "残量が最も多い";
 "My order" = "指定した順番";
-"When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "使用中のアカウントの 5 時間または週間使用量がこの水準に達すると、CCSwitcher は下のリストのアカウントに切り替えます。更新ごとに確認し、5 分間は連続切り替えしません。";
+"When any of the active account's limits — session, weekly, or a model's weekly limit — reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "使用中のアカウントのいずれかの上限（セッション・週間・モデル別の週間）がこの水準に達すると、CCSwitcher は下のリストのアカウントに切り替えます。更新ごとに確認し、5 分間は連続切り替えしません。";
 "Only the account in use is ticked, so auto-switch has nowhere to go" = "使用中のアカウントだけが選ばれているため、自動切り替えの行き先がありません";
 "Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it." = "%@ を削除しましたが、他のアカウントに切り替えられませんでした。Claude CLI は削除したアカウントのままなので、手動で切り替えてください。";
 "The stored credentials for %@ are empty. Use re-authenticate to sign in again." = "%@ の保存された認証情報が空です。再認証でサインインし直してください。";

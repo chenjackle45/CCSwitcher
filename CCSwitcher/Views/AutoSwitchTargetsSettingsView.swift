@@ -132,9 +132,9 @@ struct AutoSwitchTargetsSettingsView: View {
 /// low-remaining threshold live, and a second hard-coded copy here would be the
 /// one bar in the app that ignores both.
 ///
-/// Always asked for the weekly colour, even though the number is the higher of
-/// the 5-hour and weekly windows: this list answers "who has room left", and
-/// alternating between two palettes row by row would read as noise.
+/// Always asked for the weekly colour, even though the number is the tightest
+/// of every window the account is subject to: this list answers "who has room
+/// left", and alternating between palettes row by row would read as noise.
 private struct UsageMiniBar: View {
     let utilization: Double
     @ObservedObject private var menuBarConfig = MenuBarConfig.shared

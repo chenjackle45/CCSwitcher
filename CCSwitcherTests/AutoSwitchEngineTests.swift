@@ -10,6 +10,21 @@ final class AutoSwitchEngineTests: XCTestCase {
     private let c = Account(email: "c@example.com", displayName: "C", provider: .claudeCode)
     private let d = Account(email: "d@example.com", displayName: "D", provider: .claudeCode)
 
+    /// A response shaped like the real one: the `limits` array, carrying the
+    /// session window, the account-wide week, and a Fable-scoped week.
+    private func usageWithFable(session: Double, weekly: Double, fable: Double) -> UsageAPIResponse {
+        let resetsAt = ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600))
+        let json = """
+        {"limits":[
+          {"kind":"session","percent":\(session),"resets_at":"\(resetsAt)"},
+          {"kind":"weekly_all","percent":\(weekly),"resets_at":"\(resetsAt)"},
+          {"kind":"weekly_scoped","percent":\(fable),"resets_at":"\(resetsAt)",
+           "scope":{"model":{"display_name":"Fable"}}}
+        ]}
+        """
+        return try! JSONDecoder().decode(UsageAPIResponse.self, from: Data(json.utf8))
+    }
+
     /// A reading that is current (resets an hour from now).
     private func usage(_ utilization: Double) -> UsageAPIResponse {
         let resetsAt = ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600))
@@ -93,6 +108,52 @@ final class AutoSwitchEngineTests: XCTestCase {
                               usageByAccount: usageMap(b: 70, c: 20, d: 5))
             XCTAssertEqual(ranked.map(\.id), [d.id, c.id, b.id], "policy \(policy) changed the unrestricted ordering")
         }
+    }
+
+    // MARK: - Model-scoped limits count
+
+    /// The account that is actually blocked: session and week look fine, but
+    /// its Fable week is spent. Watching only the top-level windows made this
+    /// account look idle and it never switched away.
+    func testAModelScopedLimitTriggersASwitch() {
+        let usageByAccount: [UUID: UsageAPIResponse] = [
+            active.id: usageWithFable(session: 2, weekly: 66, fable: 92),
+            b.id: usage(20)
+        ]
+        let ranked = rank(targetIds: [], policy: .mostHeadroom, usageByAccount: usageByAccount)
+        XCTAssertEqual(ranked.map(\.id), [b.id], "a spent Fable week must count as reaching the threshold")
+    }
+
+    /// The mirror case: a candidate whose Fable week is gone is not headroom,
+    /// however idle its other windows look. Switching to it would land on an
+    /// account that cannot run the model being used.
+    ///
+    /// Note: this one passed before the fix too, but for the wrong reason — the
+    /// old code could not read a `limits`-only response at all, so the account
+    /// was excluded as "no reading" rather than as "no headroom". It is here to
+    /// pin the right reason.
+    func testACandidateWithASpentModelLimitIsNotEligible() {
+        let usageByAccount: [UUID: UsageAPIResponse] = [
+            active.id: usage(95),
+            b.id: usageWithFable(session: 0, weekly: 10, fable: 100),
+            c.id: usage(20)
+        ]
+        // Pin the REASON, not just the outcome: the old code also left b out,
+        // but because it could not read a limits-only response at all. This
+        // asserts b is excluded for having no headroom.
+        XCTAssertEqual(AutoSwitchEngine.bindingUtilization(usageWithFable(session: 0, weekly: 10, fable: 100)), 100)
+        let ranked = rank(targetIds: [], policy: .mostHeadroom, usageByAccount: usageByAccount)
+        XCTAssertEqual(ranked.map(\.id), [c.id], "b is blocked on Fable and must not be offered as the roomiest")
+    }
+
+    /// Below the ceiling on every window, including the scoped one: still eligible.
+    func testAModelScopedLimitWithHeadroomDoesNotExcludeACandidate() {
+        let usageByAccount: [UUID: UsageAPIResponse] = [
+            active.id: usage(95),
+            b.id: usageWithFable(session: 5, weekly: 40, fable: 55)
+        ]
+        let ranked = rank(targetIds: [], policy: .mostHeadroom, usageByAccount: usageByAccount)
+        XCTAssertEqual(ranked.map(\.id), [b.id])
     }
 
     // MARK: - Trigger still applies

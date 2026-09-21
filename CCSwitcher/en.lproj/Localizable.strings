@@ -163,7 +163,7 @@
 "Pick by" = "Pick by";
 "Most quota left" = "Most quota left";
 "My order" = "My order";
-"When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping.";
+"When any of the active account's limits — session, weekly, or a model's weekly limit — reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "When any of the active account's limits — session, weekly, or a model's weekly limit — reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping.";
 "Only the account in use is ticked, so auto-switch has nowhere to go" = "Only the account in use is ticked, so auto-switch has nowhere to go";
 "Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it." = "Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it.";
 "A switch or a login is in progress; try removing the account again in a moment." = "A switch or a login is in progress; try removing the account again in a moment.";

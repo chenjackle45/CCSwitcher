@@ -1248,7 +1248,11 @@ final class AppState: ObservableObject {
                 accountUsage[account.id] = usage
                 accountUsageSampledAt[account.id] = Date()
                 accountUsageErrors[account.id] = nil
-                log.info("[fetchUsage] \(account.email): session=\(usage.fiveHour?.utilization ?? -1)%, weekly=\(usage.sevenDay?.utilization ?? -1)%")
+                // The binding number too: session and weekly alone cannot
+                // explain an auto-switch decision once model-scoped limits
+                // count, and this log is the only record of what was decided on.
+                let binding = AutoSwitchEngine.bindingUtilization(usage).map { String(format: "%.0f", $0) } ?? "?"
+                log.info("[fetchUsage] \(account.email): session=\(usage.fiveHour?.utilization ?? -1)%, weekly=\(usage.sevenDay?.utilization ?? -1)%, binding=\(binding)%")
             } catch ClaudeService.UsageError.forbidden {
                 // No active Pro/Max subscription on this account (e.g. the plan
                 // lapsed) - usage is meaningless until it recovers. Observed as:
@@ -1317,7 +1321,11 @@ final class AppState: ObservableObject {
                             accountUsage[account.id] = usage
                             accountUsageSampledAt[account.id] = Date()
                             accountUsageErrors[account.id] = nil
-                            log.info("[fetchUsage] \(account.email): session=\(usage.fiveHour?.utilization ?? -1)%, weekly=\(usage.sevenDay?.utilization ?? -1)%")
+                            // The binding number too: session and weekly alone cannot
+                // explain an auto-switch decision once model-scoped limits
+                // count, and this log is the only record of what was decided on.
+                let binding = AutoSwitchEngine.bindingUtilization(usage).map { String(format: "%.0f", $0) } ?? "?"
+                log.info("[fetchUsage] \(account.email): session=\(usage.fiveHour?.utilization ?? -1)%, weekly=\(usage.sevenDay?.utilization ?? -1)%, binding=\(binding)%")
                         }
                     case .grantRejected, .noBackup, .rotationLost:
                         // Only re-authentication mints a new refresh token or a

@@ -3,17 +3,33 @@ import Foundation
 /// Pure, UI-agnostic auto-switch decision logic.
 ///
 /// Mirrors the proven design in `claude-swap` (threshold + hysteresis): when the
-/// active account's *binding window* (the higher of its 5h / weekly utilization)
-/// reaches the configured threshold, pick the same-provider account with the most
+/// active account's *binding window* (the tightest of every limit it is subject
+/// to) reaches the configured threshold, pick the same-provider account with the most
 /// quota left — but only one that sits at least `hysteresisPct` below the threshold,
 /// so two accounts hovering at the line never ping-pong. All guardrails that need
 /// state (cooldown, re-entrancy, verification) live in `AppState`; this stays a
 /// pure function.
 enum AutoSwitchEngine {
 
-    /// The binding utilization for an account = max of the windows we watch.
-    /// We watch the 5-hour (session) and 7-day (weekly-all) windows — the two
-    /// that the `/api/oauth/usage` endpoint still populates as top-level fields.
+    /// The binding utilization for an account = the tightest of EVERY window it
+    /// is subject to: the 5-hour session, the account-wide week, and each
+    /// model-scoped weekly limit (Fable, Opus…).
+    ///
+    /// The scoped ones matter as much as the other two and used to be invisible
+    /// here: an account can sit at 0% session and 66% week while its Fable week
+    /// is at 92%, and that is the number deciding whether work can continue.
+    /// Watching only the top-level fields meant such an account never triggered
+    /// a switch, and — worse — looked like an idle candidate worth switching TO.
+    ///
+    /// Precisely: when the endpoint sends the `limits` array this takes EVERY
+    /// row in it, whatever its `kind` — `displayWindows` deliberately keeps
+    /// unknown kinds so a new server-side window shows up without an app
+    /// update, and that policy is inherited here rather than second-guessed.
+    /// The risk it carries is a window that has nothing to do with Claude Code
+    /// (a surface-scoped or third-party-app quota) pushing an account out of
+    /// the candidate pool for a week. No such row has been observed in a real
+    /// response — the live payload is session / weekly_all / weekly_scoped — so
+    /// no filter is written for one; add it here if one ever appears.
     ///
     /// A window reading whose `resets_at` lies in the past is discarded: accounts
     /// are polled round-robin, so a retained sample can outlive the window it
@@ -36,10 +52,14 @@ enum AutoSwitchEngine {
         requireKnownWindow: Bool = false
     ) -> Double? {
         guard let usage else { return nil }
-        return [usage.fiveHour, usage.sevenDay]
-            .compactMap { window -> Double? in
-                guard let window, let util = window.utilization else { return nil }
-                guard let resets = window.resetsAtDate else {
+        // `displayWindows` is the one place that already reconciles the two
+        // shapes the endpoint uses: the `limits` array when it is sent, and the
+        // fixed top-level fields when it is not. Reading it here keeps the
+        // account cards and this decision on the same set of numbers.
+        return usage.displayWindows
+            .compactMap { row -> Double? in
+                guard let util = row.utilization else { return nil }
+                guard let resets = row.window.resetsAtDate else {
                     return requireKnownWindow ? nil : util
                 }
                 return resets < now ? nil : util

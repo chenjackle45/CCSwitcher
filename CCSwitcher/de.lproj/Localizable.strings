@@ -160,7 +160,7 @@
 "Pick by" = "Auswahl nach";
 "Most quota left" = "Meiste Restmenge";
 "My order" = "Meine Reihenfolge";
-"When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "Erreicht die 5-Stunden- oder Wochennutzung des aktiven Kontos diesen Wert, wechselt CCSwitcher zu einem Konto aus der Liste unten. Wird bei jeder Aktualisierung geprüft; 5 Minuten Abkühlzeit verhindern schnelles Hin und Her.";
+"When any of the active account's limits — session, weekly, or a model's weekly limit — reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "Erreicht eines der Limits des aktiven Kontos — Sitzung, Woche oder das Wochenlimit eines Modells — diesen Wert, wechselt CCSwitcher zu einem Konto aus der Liste unten. Wird bei jeder Aktualisierung geprüft; 5 Minuten Abkühlzeit verhindern schnelles Hin und Her.";
 "Only the account in use is ticked, so auto-switch has nowhere to go" = "Nur das aktuell verwendete Konto ist angekreuzt — der automatische Wechsel hat kein Ziel";
 "Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it." = "%@ wurde entfernt, aber es konnte nicht zu einem anderen Konto gewechselt werden. Die Claude CLI ist weiterhin beim entfernten Konto angemeldet — bitte manuell wechseln.";
 "The stored credentials for %@ are empty. Use re-authenticate to sign in again." = "Die gespeicherten Anmeldedaten für %@ sind leer. Melden Sie sich über die Schaltfläche zum erneuten Authentifizieren wieder an.";

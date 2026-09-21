@@ -160,7 +160,7 @@
 "Pick by" = "挑选方式";
 "Most quota left" = "剩余最多";
 "My order" = "按我的顺序";
-"When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "使用中的账号 5 小时或每周用量达到这个比例时，CCSwitcher 会换到下面列表里的账号。每次刷新检查一次；5 分钟内不会连续切换。";
+"When any of the active account's limits — session, weekly, or a model's weekly limit — reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping." = "使用中账号的任一条额度（会话、每周、或某个模型的周额度）达到这个比例时，CCSwitcher 会换到下面列表里的账号。每次刷新检查一次；5 分钟内不会连续切换。";
 "Only the account in use is ticked, so auto-switch has nowhere to go" = "只勾了使用中的账号，自动切换没有可去的地方";
 "Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it." = "已移除 %@，但没能切换到其他账号。Claude CLI 仍登录着被移除的账号，请手动切换一次。";
 "The stored credentials for %@ are empty. Use re-authenticate to sign in again." = "%@ 保存的凭据是空的。请用重新认证再登录一次。";

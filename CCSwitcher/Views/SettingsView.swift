@@ -79,7 +79,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
 
-                    Text("When the active account's 5-hour or weekly usage reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping.")
+                    Text("When any of the active account's limits — session, weekly, or a model's weekly limit — reaches this level, CCSwitcher switches to one of the accounts below. Checked on every refresh; a 5-minute cooldown prevents rapid flip-flopping.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
