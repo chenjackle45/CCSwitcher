@@ -253,7 +253,10 @@ final class KeychainService: Sendable {
 
     // MARK: - App Keychain operations (Backups)
 
-    private let appBackupService = "me.xueshi.ccswitcher.backups"
+    private let appBackupService = "me.xueshi.ccswitcherplus.backups"
+    /// Upstream's service name. This fork reads it once to migrate, never writes
+    /// to it, so an upstream install alongside this one keeps working.
+    private let legacyBackupService = "me.xueshi.ccswitcher.backups"
     private let appBackupAccount = "all-accounts"
 
     /// Result of reading the single keychain item that holds every backup.
@@ -296,6 +299,21 @@ final class KeychainService: Sendable {
             return .loaded(dict)
 
         case errSecItemNotFound:
+            // Migration from upstream's keychain service name. Runs once: after
+            // the store is written under the new service this branch is never
+            // reached again.
+            if let legacy = loadLegacyBackupStore() {
+                log.info("[loadBackupStore] Migrating \(legacy.count) entries from \(legacyBackupService)")
+                guard saveBackupStore(legacy) else {
+                    // Do not report `.empty` — the next save would then write a
+                    // single-entry store and the legacy item would never be
+                    // consulted again, stranding every other account.
+                    log.error("[loadBackupStore] Legacy service migration save failed")
+                    return .failed("legacy service migration save failed")
+                }
+                log.info("[loadBackupStore] Legacy service migration complete")
+                return .loaded(legacy)
+            }
             // Migration from local file (pre-keychain versions)
             if FileManager.default.fileExists(atPath: backupsFilePath) {
                 guard let data = FileManager.default.contents(atPath: backupsFilePath),
@@ -336,6 +354,35 @@ final class KeychainService: Sendable {
             log.error("[loadBackupStore] Read failed, OSStatus: \(status)")
             return .failed("OSStatus \(status)")
         }
+    }
+
+    /// Reads the backup store from upstream's keychain service.
+    /// Returns nil when there is nothing to migrate, when the read was refused,
+    /// or when the data does not decode — never an empty dictionary, so a denied
+    /// prompt cannot be mistaken for "this user has no accounts".
+    private func loadLegacyBackupStore() -> [String: AccountBackup]? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: legacyBackupService,
+            kSecAttrAccount as String: appBackupAccount,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess, let data = item as? Data else {
+            if status != errSecItemNotFound {
+                log.error("[loadLegacyBackupStore] Read failed, OSStatus: \(status)")
+            }
+            return nil
+        }
+        guard let dict = try? JSONDecoder().decode([String: AccountBackup].self, from: data),
+              !dict.isEmpty else {
+            log.error("[loadLegacyBackupStore] Item exists (\(data.count) bytes) but did not decode")
+            return nil
+        }
+        return dict
     }
 
     /// Must be called with `storeLock` held.
