@@ -46,12 +46,10 @@ struct UsageLimit: Codable {
     let severity: String?
     let resetsAt: String?
     let scope: UsageLimitScope?
-    let isActive: Bool?
 
     enum CodingKeys: String, CodingKey {
         case kind, group, percent, severity, scope
         case resetsAt = "resets_at"
-        case isActive = "is_active"
     }
 
     /// "Fable", "Opus"… for a model-scoped window; nil for account-wide ones.
@@ -85,8 +83,6 @@ struct UsageDisplayWindow: Identifiable {
     let isSession: Bool
     let utilization: Double?
     let resetsAt: String?
-    /// The window the API says is the one actually constraining the account.
-    let isLimiting: Bool
 
     var window: UsageWindow { UsageWindow(utilization: utilization, resetsAt: resetsAt) }
 }
@@ -109,8 +105,7 @@ extension UsageAPIResponse {
                         scopeName: limit.scopeName,
                         isSession: isSession,
                         utilization: limit.percent,
-                        resetsAt: limit.resetsAt,
-                        isLimiting: limit.isActive == true
+                        resetsAt: limit.resetsAt
                     )
                 )
             }
@@ -124,19 +119,16 @@ extension UsageAPIResponse {
         var rows: [UsageDisplayWindow] = []
         if let fiveHour {
             rows.append(UsageDisplayWindow(id: "five_hour", scopeName: nil, isSession: true,
-                                           utilization: fiveHour.utilization, resetsAt: fiveHour.resetsAt,
-                                           isLimiting: false))
+                                           utilization: fiveHour.utilization, resetsAt: fiveHour.resetsAt))
         }
         if let sevenDay {
             rows.append(UsageDisplayWindow(id: "seven_day", scopeName: nil, isSession: false,
-                                           utilization: sevenDay.utilization, resetsAt: sevenDay.resetsAt,
-                                           isLimiting: false))
+                                           utilization: sevenDay.utilization, resetsAt: sevenDay.resetsAt))
         }
         for (name, window) in [("Opus", sevenDayOpus), ("Sonnet", sevenDaySonnet)] {
             if let window, window.utilization != nil {
                 rows.append(UsageDisplayWindow(id: "seven_day_\(name)", scopeName: name, isSession: false,
-                                               utilization: window.utilization, resetsAt: window.resetsAt,
-                                               isLimiting: false))
+                                               utilization: window.utilization, resetsAt: window.resetsAt))
             }
         }
         return rows

@@ -142,7 +142,7 @@ private struct UsageMiniBar: View {
     var body: some View {
         ZStack(alignment: .leading) {
             Capsule()
-                .fill(Color.secondary.opacity(0.2))
+                .fill(.progressTrack)
             Capsule()
                 .fill(menuBarConfig.limitBarColor(for: .weekly, utilization: utilization, context: .dashboard))
                 .frame(width: 70 * min(max(utilization, 0), 100) / 100)

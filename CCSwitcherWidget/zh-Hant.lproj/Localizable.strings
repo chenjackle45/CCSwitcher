@@ -14,8 +14,10 @@
 "Extra usage" = "額外用量";
 "On" = "開啟";
 "Off" = "關閉";
-"ACTIVE" = "活躍";
 "Turns" = "對話";
 "Active" = "活躍";
 "Lines" = "行數";
 "Cost" = "費用";
+"Weekly · Fable" = "每週 · Fable";
+"Top to bottom: Session / Weekly / Fable" = "上→下：工作階段／每週／Fable";
+"%lld%% left" = "剩 %lld%%";

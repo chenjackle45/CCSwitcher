@@ -2,15 +2,11 @@
 "Usage" = "Usage";
 "Costs" = "Costs";
 "Accounts" = "Accounts";
-
-/* Main Menu */
 "Double Usage Active" = "Double Usage Active";
 "No account connected" = "No account connected";
 "Refresh" = "Refresh";
 "Settings" = "Settings";
 "Quit" = "Quit";
-
-/* Settings - General */
 "General" = "General";
 "About" = "About";
 "Appearance" = "Appearance";
@@ -22,22 +18,15 @@
 "5 minutes" = "5 minutes";
 "10 minutes" = "10 minutes";
 "Show account name in menu bar" = "Show account name in menu bar";
-"Show head icon in menu bar" = "Show head icon in menu bar";
 "Show full email address" = "Show full email address";
 "Launch at login" = "Launch at login";
-
-/* Language */
 "Language" = "Language";
 "Automatic" = "Automatic";
-
-/* Settings - About */
 "Claude Code Account Switcher" = "Claude Code Account Switcher";
 "Version %@" = "Version %@";
 "Checking..." = "Checking...";
 "Check for Updates" = "Check for Updates";
 "Easily switch between Claude Code accounts and monitor usage." = "Easily switch between Claude Code accounts and monitor usage.";
-
-/* Usage Dashboard */
 "Loading usage data..." = "Loading usage data...";
 "Usage data unavailable" = "Usage data unavailable";
 "Today's API-Equivalent Cost" = "Today's API-Equivalent Cost";
@@ -55,13 +44,10 @@
 "Token expired. Switch to this account in Claude Code to refresh." = "Token expired. Switch to this account in Claude Code to refresh.";
 "Session" = "Session";
 "Weekly" = "Weekly";
-"Limiting" = "Limiting";
 "Extra usage" = "Extra usage";
 "On" = "On";
 "Off" = "Off";
 "Resets in %@" = "Resets in %@";
-
-/* Cost Detail */
 "Today" = "Today";
 "Last 7 Days" = "Last 7 Days";
 "Last 30 Days" = "Last 30 Days";
@@ -79,8 +65,6 @@
 "Cache R" = "Cache R";
 "%lld sessions" = "%lld sessions";
 "%@ tokens" = "%@ tokens";
-
-/* Account Switcher */
 "No Accounts" = "No Accounts";
 "Custom label" = "Custom label";
 "Edit label" = "Edit label";
@@ -90,12 +74,8 @@
 "Complete the login in your browser, then return here." = "Complete the login in your browser, then return here.";
 "Re-authenticate (fix stale token)" = "Re-authenticate (fix stale token)";
 "Remove account" = "Remove account";
-
-/* Usage Chart */
 "No Data" = "No Data";
 "Usage data will appear here" = "Usage data will appear here";
-
-/* Update Checker */
 "A new version of CCSwitcher is available!" = "A new version of CCSwitcher is available!";
 "Version %@ is available. You are currently running version %@.\n\nWould you like to download it now?" = "Version %@ is available. You are currently running version %@.\n\nWould you like to download it now?";
 "Download & Install" = "Download & Install";
@@ -116,8 +96,6 @@
 "Quit CCSwitcher" = "Quit CCSwitcher";
 "Download Failed" = "Download Failed";
 "OK" = "OK";
-
-/* AppState Errors */
 "Claude CLI not found" = "Claude CLI not found";
 "Login did not complete" = "Login did not complete";
 "Account already exists - credentials refreshed" = "Account already exists - credentials refreshed";
@@ -133,16 +111,10 @@
 "Could not fetch usage: %@" = "Could not fetch usage: %@";
 "Claude reports %@, but the stored sign-in is still %@'s — another Claude Code session rewrote the identity. Switch accounts once to re-sync." = "Claude reports %1$@, but the stored sign-in is still %2$@'s — another Claude Code session rewrote the identity. Switch accounts once to re-sync.";
 "Can't tell which account the current sign-in belongs to. Switch accounts once to re-sync." = "Can't tell which account the current sign-in belongs to. Switch accounts once to re-sync.";
-
-/* Promo */
 "%@ - %@ (Weekdays) & Weekends" = "%@ - %@ (Weekdays) & Weekends";
 "Double limits: 2 PM - 8 AM ET & Weekends" = "Double limits: 2 PM - 8 AM ET & Weekends";
-
-/* About */
 "More apps at xueshi.dev" = "More apps at xueshi.dev";
 "© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
-
-/* Menu Bar */
 "Menu bar" = "Menu bar";
 "Menu bar modules" = "Menu bar modules";
 "Drag to reorder, toggle to enable. Disabled modules sit at the bottom." = "Drag to reorder, toggle to enable. Disabled modules sit at the bottom.";
@@ -166,8 +138,6 @@
 "Weekly — usage vs time (7d)" = "Weekly — usage vs time (7d)";
 "The vertical line marks time elapsed in the window; fill past it means you're using faster than the clock." = "The vertical line marks time elapsed in the window; fill past it means you're using faster than the clock.";
 "Claude Fable 5 — most powerful model, the new flagship tier" = "Claude Fable 5 — most powerful model, the new flagship tier";
-
-/* Auto-switch & rate-limit resilience */
 "Waiting for usage data..." = "Waiting for usage data...";
 "No active subscription on this account (OAuth not allowed)." = "No active subscription on this account (OAuth not allowed).";
 "Session expired. Re-authenticate (↻) to fix." = "Session expired. Re-authenticate (↻) to fix.";
@@ -177,19 +147,13 @@
 "Updated %@ ago" = "Updated %@ ago";
 "Could not save the refreshed sign-in; will retry automatically." = "Could not save the refreshed sign-in; will retry automatically.";
 "Credential storage is temporarily unavailable. Try again shortly." = "Credential storage is temporarily unavailable. Try again shortly.";
-
-/* Weekly Consumption Total */
 "Sign in to a Claude Code account to get started." = "Sign in to a Claude Code account to get started.";
-
-/* Weekly usage across accounts (#28) */
 "Weekly usage across accounts" = "Weekly usage across accounts";
 "%lld/%lld in this cycle" = "%lld/%lld in this cycle";
 "Total" = "Total";
 "Average" = "Average";
 "Sum of every account's 7-day utilization. Each account has its own weekly quota, so the total can exceed 100%." = "Sum of every account's 7-day utilization. Each account has its own weekly quota, so the total can exceed 100%.";
 "Average 7-day utilization across the accounts that reported data." = "Average 7-day utilization across the accounts that reported data.";
-
-/* Auto-switch account list */
 "Accounts to switch to" = "Accounts to switch to";
 "Tick the accounts auto-switch may move to, and drag to set the order. Nothing ticked means every account is allowed." = "Tick the accounts auto-switch may move to, and drag to set the order. Nothing ticked means every account is allowed.";
 "Every account is allowed" = "Every account is allowed";
@@ -203,3 +167,7 @@
 "Only the account in use is ticked, so auto-switch has nowhere to go" = "Only the account in use is ticked, so auto-switch has nowhere to go";
 "Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it." = "Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it.";
 "A switch or a login is in progress; try removing the account again in a moment." = "A switch or a login is in progress; try removing the account again in a moment.";
+"Usage numbers" = "Usage numbers";
+"Used" = "Used";
+"Remaining" = "Remaining";
+"%lld%% left" = "%lld%% left";

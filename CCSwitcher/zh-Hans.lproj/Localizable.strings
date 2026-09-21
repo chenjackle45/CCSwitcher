@@ -2,15 +2,11 @@
 "Usage" = "用量";
 "Costs" = "费用";
 "Accounts" = "账户";
-
-/* Main Menu */
 "Double Usage Active" = "双倍用量生效中";
 "No account connected" = "未连接账户";
 "Refresh" = "刷新";
 "Settings" = "设置";
 "Quit" = "退出";
-
-/* Settings - General */
 "General" = "通用";
 "About" = "关于";
 "Appearance" = "外观";
@@ -22,22 +18,15 @@
 "5 minutes" = "5 分钟";
 "10 minutes" = "10 分钟";
 "Show account name in menu bar" = "在菜单栏显示账户名称";
-"Show head icon in menu bar" = "在菜单栏显示头像图标";
 "Show full email address" = "显示完整邮箱地址";
 "Launch at login" = "登录时启动";
-
-/* Language */
 "Language" = "语言";
 "Automatic" = "自动";
-
-/* Settings - About */
 "Claude Code Account Switcher" = "Claude Code 账户切换工具";
 "Version %@" = "版本 %@";
 "Checking..." = "检查中...";
 "Check for Updates" = "检查更新";
 "Easily switch between Claude Code accounts and monitor usage." = "轻松切换 Claude Code 账户并监控用量。";
-
-/* Usage Dashboard */
 "Loading usage data..." = "正在加载用量数据...";
 "Usage data unavailable" = "用量数据不可用";
 "Today's API-Equivalent Cost" = "今日 API 等效费用";
@@ -55,13 +44,10 @@
 "Token expired. Switch to this account in Claude Code to refresh." = "令牌已过期。请在 Claude Code 中切换到此账户以刷新。";
 "Session" = "会话";
 "Weekly" = "每周";
-"Limiting" = "受限中";
 "Extra usage" = "额外用量";
 "On" = "开启";
 "Off" = "关闭";
 "Resets in %@" = "%@ 后重置";
-
-/* Cost Detail */
 "Today" = "今日";
 "Last 7 Days" = "近 7 天";
 "Last 30 Days" = "近 30 天";
@@ -79,8 +65,6 @@
 "Cache R" = "缓存读";
 "%lld sessions" = "%lld 个会话";
 "%@ tokens" = "%@ 词元";
-
-/* Account Switcher */
 "No Accounts" = "无账户";
 "Custom label" = "自定义标签";
 "Edit label" = "编辑标签";
@@ -90,12 +74,8 @@
 "Complete the login in your browser, then return here." = "请在浏览器中完成登录，然后返回此处。";
 "Re-authenticate (fix stale token)" = "重新认证（修复过期令牌）";
 "Remove account" = "移除账户";
-
-/* Usage Chart */
 "No Data" = "无数据";
 "Usage data will appear here" = "用量数据将在此显示";
-
-/* Update Checker */
 "A new version of CCSwitcher is available!" = "CCSwitcher 有新版本可用！";
 "Version %@ is available. You are currently running version %@.\n\nWould you like to download it now?" = "版本 %1$@ 可用。您当前运行的是版本 %2$@。\n\n是否立即下载？";
 "Download & Install" = "下载并安装";
@@ -116,8 +96,6 @@
 "Quit CCSwitcher" = "退出 CCSwitcher";
 "Download Failed" = "下载失败";
 "OK" = "好";
-
-/* AppState Errors */
 "Claude CLI not found" = "未找到 Claude CLI";
 "Login did not complete" = "登录未完成";
 "Account already exists - credentials refreshed" = "账户已存在 - 凭据已刷新";
@@ -132,12 +110,8 @@
 "Could not fetch usage: %@" = "无法获取用量：%@";
 "Claude reports %@, but the stored sign-in is still %@'s — another Claude Code session rewrote the identity. Switch accounts once to re-sync." = "Claude 报告的账号是 %1$@，但保存的登录凭据仍是 %2$@ 的 —— 另一个 Claude Code 会话改写了账号标识。请切换一次账号以重新同步。";
 "Can't tell which account the current sign-in belongs to. Switch accounts once to re-sync." = "无法确定当前登录凭据属于哪个账号。请切换一次账号以重新同步。";
-
-/* Promo */
 "%@ - %@ (Weekdays) & Weekends" = "%1$@ - %2$@（工作日）及周末";
 "Double limits: 2 PM - 8 AM ET & Weekends" = "双倍额度：美东时间下午 2 点 - 上午 8 点及周末";
-
-/* Menu Bar */
 "Menu bar" = "菜单栏";
 "Menu bar modules" = "菜单栏模块";
 "Drag to reorder, toggle to enable. Disabled modules sit at the bottom." = "拖动排序，勾选启用。未启用的模块排在下方。";
@@ -161,8 +135,6 @@
 "Weekly — usage vs time (7d)" = "每周 — 用量 vs 时间（7天）";
 "The vertical line marks time elapsed in the window; fill past it means you're using faster than the clock." = "竖线 = 时间进度（该时段已过去多少）；填充超过它 = 你用得比时间快。";
 "Claude Fable 5 — most powerful model, the new flagship tier" = "Claude Fable 5 — 最强大的模型，全新旗舰层级";
-
-/* Auto-switch & rate-limit resilience */
 "Waiting for usage data..." = "正在等待用量数据...";
 "No active subscription on this account (OAuth not allowed)." = "该账户没有有效订阅（不允许 OAuth）。";
 "Session expired. Re-authenticate (↻) to fix." = "会话已过期。请重新认证（↻）来修复。";
@@ -173,16 +145,12 @@
 "Could not save the refreshed sign-in; will retry automatically." = "无法保存刷新后的登录凭据；将自动重试。";
 "Credential storage is temporarily unavailable. Try again shortly." = "凭据存储暂时不可用。请稍后重试。";
 "Sign in to a Claude Code account to get started." = "登录一个 Claude Code 帐号即可开始。";
-
-/* Weekly usage across accounts (#28) */
 "Weekly usage across accounts" = "各账号周用量合计";
 "%lld/%lld in this cycle" = "%lld/%lld 在本周期内";
 "Total" = "合计";
 "Average" = "平均";
 "Sum of every account's 7-day utilization. Each account has its own weekly quota, so the total can exceed 100%." = "所有账号 7 天用量的合计。每个账号有自己的周额度，所以加起来可能超过 100%。";
 "Average 7-day utilization across the accounts that reported data." = "有回报数据的账号，7 天用量的平均值。";
-
-/* Auto-switch account list */
 "Accounts to switch to" = "可以切换到的账号";
 "Tick the accounts auto-switch may move to, and drag to set the order. Nothing ticked means every account is allowed." = "勾选自动切换可以换过去的账号，拖拽排顺序。一个都没勾＝全部都可以。";
 "Every account is allowed" = "全部账号都可以";
@@ -199,3 +167,7 @@
 "More apps at xueshi.dev" = "作者的其他 App：xueshi.dev";
 "© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
 "A switch or a login is in progress; try removing the account again in a moment." = "正在切换或登录中，请稍后再移除这个账号。";
+"Usage numbers" = "用量数字";
+"Used" = "已用";
+"Remaining" = "剩余";
+"%lld%% left" = "剩 %lld%%";

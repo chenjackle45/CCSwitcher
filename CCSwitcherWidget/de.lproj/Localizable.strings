@@ -14,8 +14,10 @@
 "Extra usage" = "Zusätzliche Nutzung";
 "On" = "An";
 "Off" = "Aus";
-"ACTIVE" = "AKTIV";
 "Turns" = "Runden";
 "Active" = "Aktiv";
 "Lines" = "Zeilen";
 "Cost" = "Kosten";
+"Weekly · Fable" = "Wöchentlich · Fable";
+"Top to bottom: Session / Weekly / Fable" = "Von oben: Sitzung / Wöchentlich / Fable";
+"%lld%% left" = "%lld %% übrig";

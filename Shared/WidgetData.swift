@@ -13,6 +13,9 @@ struct WidgetAccountData: Codable {
     let sessionResetTime: String?
     let weeklyUtilization: Double?
     let weeklyResetTime: String?
+    /// Weekly limit scoped to Fable; nil when the account has none.
+    let fableWeeklyUtilization: Double?
+    let fableWeeklyResetTime: String?
     let extraUsageEnabled: Bool?
     let hasError: Bool
     let errorMessage: String?
@@ -26,6 +29,9 @@ struct WidgetData: Codable {
     let linesWritten: Int
     let modelUsage: [String: Int]
     let lastUpdated: Date
+    /// "Usage numbers: remaining" setting. Optional so files written by older
+    /// builds still decode.
+    let showsRemaining: Bool?
 
     // Team-ID-prefixed App Group. macOS Sequoia (15+) prompts for App
     // Management on `group.<bundle-id>` style identifiers; the

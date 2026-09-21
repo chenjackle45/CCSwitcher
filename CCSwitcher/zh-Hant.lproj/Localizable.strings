@@ -2,15 +2,11 @@
 "Usage" = "用量";
 "Costs" = "費用";
 "Accounts" = "帳號";
-
-/* Main Menu */
 "Double Usage Active" = "雙倍用量生效中";
 "No account connected" = "未連結的帳號";
 "Refresh" = "重新整理";
 "Settings" = "設定";
 "Quit" = "結束";
-
-/* Settings - General */
 "General" = "通用";
 "About" = "關於";
 "Appearance" = "外觀";
@@ -22,22 +18,15 @@
 "5 minutes" = "5 分鐘";
 "10 minutes" = "10 分鐘";
 "Show account name in menu bar" = "在選單列顯示帳號名稱";
-"Show head icon in menu bar" = "在選單列顯示頭像圖示";
 "Show full email address" = "顯示完整電子郵件地址";
 "Launch at login" = "登入時啟動";
-
-/* Language */
 "Language" = "語言";
 "Automatic" = "自動";
-
-/* Settings - About */
 "Claude Code Account Switcher" = "Claude Code 帳號切換工具";
 "Version %@" = "版本 %@";
 "Checking..." = "檢查中...";
 "Check for Updates" = "檢查更新";
 "Easily switch between Claude Code accounts and monitor usage." = "輕鬆切換 Claude Code 帳號並監控用量。";
-
-/* Usage Dashboard */
 "Loading usage data..." = "正在載入用量資料...";
 "Usage data unavailable" = "用量資料不可用";
 "Today's API-Equivalent Cost" = "今日 API 等效費用";
@@ -55,13 +44,10 @@
 "Token expired. Switch to this account in Claude Code to refresh." = "權杖已過期。請在 Claude Code 中切換到此帳號以重新整理。";
 "Session" = "工作階段";
 "Weekly" = "每週";
-"Limiting" = "受限中";
 "Extra usage" = "額外用量";
 "On" = "開啟";
 "Off" = "關閉";
 "Resets in %@" = "%@ 後重置";
-
-/* Cost Detail */
 "Today" = "今日";
 "Last 7 Days" = "近 7 天";
 "Last 30 Days" = "近 30 天";
@@ -79,8 +65,6 @@
 "Cache R" = "快取讀";
 "%lld sessions" = "%lld 個工作階段";
 "%@ tokens" = "%@ token";
-
-/* Account Switcher */
 "No Accounts" = "無帳號";
 "Custom label" = "自訂標籤";
 "Edit label" = "編輯標籤";
@@ -90,12 +74,8 @@
 "Complete the login in your browser, then return here." = "請在瀏覽器中完成登入，然後回到這裡。";
 "Re-authenticate (fix stale token)" = "重新認證（修復過期權杖）";
 "Remove account" = "移除帳號";
-
-/* Usage Chart */
 "No Data" = "無資料";
 "Usage data will appear here" = "用量資料將在此顯示";
-
-/* Update Checker */
 "A new version of CCSwitcher is available!" = "CCSwitcher 有新版本可用！";
 "Version %@ is available. You are currently running version %@.\n\nWould you like to download it now?" = "版本 %1$@ 可用。你目前執行的是版本 %2$@。\n\n是否立即下載？";
 "Download & Install" = "下載並安裝";
@@ -116,8 +96,6 @@
 "Quit CCSwitcher" = "結束 CCSwitcher";
 "Download Failed" = "下載失敗";
 "OK" = "好";
-
-/* AppState Errors */
 "Claude CLI not found" = "找不到 Claude CLI";
 "Login did not complete" = "登入未完成";
 "Account already exists - credentials refreshed" = "帳號已存在 - 憑證已重新整理";
@@ -130,12 +108,8 @@
 "Token expired. Switch to this account to refresh." = "權杖已過期。切換到此帳號以重新整理。";
 "API Rate Limited. Try again later." = "API 請求次數受限。請稍後再試。";
 "Could not fetch usage: %@" = "無法取得用量：%@";
-
-/* Promo */
 "%@ - %@ (Weekdays) & Weekends" = "%1$@ - %2$@（工作日）及週末";
 "Double limits: 2 PM - 8 AM ET & Weekends" = "雙倍額度：美東時間下午 2 點 - 上午 8 點及週末";
-
-/* Menu Bar */
 "Menu bar" = "選單列";
 "Menu bar modules" = "選單列模組";
 "Drag to reorder, toggle to enable. Disabled modules sit at the bottom." = "拖曳排序，勾選啟用。未啟用的模組排在下方。";
@@ -159,8 +133,6 @@
 "Weekly — usage vs time (7d)" = "每週 — 用量 vs 時間（7 天）";
 "The vertical line marks time elapsed in the window; fill past it means you're using faster than the clock." = "直線 = 時間進度（該時段已過去多少）；填充超過它 = 你用得比時間快。";
 "Claude Fable 5 — most powerful model, the new flagship tier" = "Claude Fable 5 — 最強大的模型，全新旗艦層級";
-
-/* Auto-switch & rate-limit resilience */
 "Waiting for usage data..." = "正在等待用量資料...";
 "No active subscription on this account (OAuth not allowed)." = "該帳號沒有有效訂閱（不允許 OAuth）。";
 "Session expired. Re-authenticate (↻) to fix." = "工作階段已過期。請重新認證（↻）來修復。";
@@ -173,16 +145,12 @@
 "More apps at xueshi.dev" = "作者的其他 App：xueshi.dev";
 "© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
 "Sign in to a Claude Code account to get started." = "登入一個 Claude Code 帳號即可開始。";
-
-/* Weekly usage across accounts (#28) */
 "Weekly usage across accounts" = "各帳號週用量加總";
 "%lld/%lld in this cycle" = "%lld/%lld 在本週期內";
 "Total" = "加總";
 "Average" = "平均";
 "Sum of every account's 7-day utilization. Each account has its own weekly quota, so the total can exceed 100%." = "所有帳號 7 天用量的加總。每個帳號有自己的週額度，所以加起來可能超過 100%。";
 "Average 7-day utilization across the accounts that reported data." = "有回報資料的帳號，7 天用量的平均值。";
-
-/* Auto-switch account list */
 "Accounts to switch to" = "可以切換到的帳號";
 "Tick the accounts auto-switch may move to, and drag to set the order. Nothing ticked means every account is allowed." = "勾選自動切換可以換過去的帳號，拖曳排順序。一個都沒勾＝全部都可以。";
 "Every account is allowed" = "全部帳號都可以";
@@ -199,3 +167,7 @@
 "Claude reports %@, but the stored sign-in is still %@'s — another Claude Code session rewrote the identity. Switch accounts once to re-sync." = "Claude 報告的帳號是 %1$@，但保存的登入憑據仍是 %2$@ 的 —— 另一個 Claude Code 工作階段改寫了帳號標識。請切換一次帳號以重新同步。";
 "The stored credentials for %@ are empty. Use re-authenticate to sign in again." = "%@ 保存的憑證是空的。請用重新認證再登入一次。";
 "A switch or a login is in progress; try removing the account again in a moment." = "正在切換或登入中，請稍後再移除這個帳號。";
+"Usage numbers" = "用量數字";
+"Used" = "已用";
+"Remaining" = "剩餘";
+"%lld%% left" = "剩 %lld%%";

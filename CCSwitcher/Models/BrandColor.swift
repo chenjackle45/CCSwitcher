@@ -5,7 +5,7 @@ import SwiftUI
 extension Color {
     /// CCSwitcher brand color.
     // static let brand = Color(red: 0x7C / 255.0, green: 0x3A / 255.0, blue: 0xED / 255.0) // #7C3AED
-    static let brand = Color(red: 0xE8 / 255.0, green: 0x6D / 255.0, blue: 0x45 / 255.0) // #E86D45
+    static let brand = Color(rgb: UsagePalette.terracotta) // #D97757
 
     /// Creates a color that automatically adapts between light and dark appearance.
     static func adaptive(light: Color, dark: Color) -> Color {
@@ -44,32 +44,50 @@ extension Color {
     // MARK: - Card
 
     /// Standard card fill.
-    static let cardFill = adaptive(light: Color.white.opacity(0.20), dark: Color.black.opacity(0.21))
+    static let cardFill = adaptive(light: warmWhite.opacity(0.28), dark: warmWhite.opacity(0.07))
     /// Emphasized card fill (e.g. active account row).
-    static let cardFillStrong = adaptive(light: Color.white.opacity(0.25), dark: Color.black.opacity(0.28))
+    static let cardFillStrong = adaptive(light: warmWhite.opacity(0.40), dark: warmWhite.opacity(0.12))
     /// Standard card border.
-    static let cardBorder = adaptive(light: Color.white.opacity(0.40), dark: Color.white.opacity(0.20))
+    static let cardBorder = adaptive(light: warmWhite.opacity(0.50), dark: warmWhite.opacity(0.10))
 
     // MARK: - Tab Bar
 
     /// Tab bar background fill.
-    static let tabFill = adaptive(light: Color.white.opacity(0.15), dark: Color.black.opacity(0.21))
+    static let tabFill = adaptive(light: warmGray.opacity(0.14), dark: warmGray.opacity(0.24))
     /// Tab bar border.
-    static let tabBorder = adaptive(light: Color.white.opacity(0.40), dark: Color.white.opacity(0.20))
+    static let tabBorder = adaptive(light: warmWhite.opacity(0.45), dark: warmWhite.opacity(0.10))
 
     // MARK: - Text
 
     /// Primary text color for cards and tab selected state.
-    static let textPrimary = adaptive(light: Color.primary, dark: Color.white)
+    static let textPrimary = adaptive(light: Color.primary, dark: Color(rgb: 0xF7F3EE))
     /// Secondary text color for card labels and tab unselected state.
-    static let textSecondary = adaptive(light: Color.secondary, dark: Color.white.opacity(0.55))
+    static let textSecondary = adaptive(light: Color.secondary, dark: Color(rgb: 0xF0E8DE).opacity(0.62))
+    /// Terracotta text on a terracotta-tinted background.
+    static let brandText = UsagePalette.brandText.adaptive
 
     // MARK: - Subtle Backgrounds
 
     /// Subtle brand tint for banners and badges.
     static let subtleBrand = adaptive(light: brand.opacity(0.12), dark: brand.opacity(0.28))
     /// Progress bar track.
-    static let progressTrack = adaptive(light: Color.gray.opacity(0.18), dark: Color.white.opacity(0.15))
+    static let progressTrack = adaptive(light: warmGray.opacity(0.18), dark: warmWhite.opacity(0.12))
+
+    // MARK: - Usage Levels
+
+    static let usageNormal = UsagePalette.normal.adaptive
+    static let usageWarning = UsagePalette.warning.adaptive
+    static let usageCritical = UsagePalette.critical.adaptive
+
+    private static let warmWhite = Color(rgb: 0xFFF5EB)
+    private static let warmGray = Color(rgb: 0x8A7F76)
+}
+
+extension UsagePalette.Tone {
+    /// The tone as a color that follows the app's light / dark appearance.
+    var adaptive: Color {
+        Color.adaptive(light: Color(rgb: light), dark: Color(rgb: dark))
+    }
 }
 
 extension ShapeStyle where Self == Color {
@@ -83,4 +101,8 @@ extension ShapeStyle where Self == Color {
     static var textSecondary: Color { .textSecondary }
     static var subtleBrand: Color { .subtleBrand }
     static var progressTrack: Color { .progressTrack }
+    static var brandText: Color { .brandText }
+    static var usageNormal: Color { .usageNormal }
+    static var usageWarning: Color { .usageWarning }
+    static var usageCritical: Color { .usageCritical }
 }

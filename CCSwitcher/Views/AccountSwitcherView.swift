@@ -53,12 +53,6 @@ struct AccountSwitcherView: View {
 
     private func accountRow(_ account: Account) -> some View {
         HStack(spacing: 12) {
-            // Provider icon
-            Image(systemName: account.provider.iconName)
-                .font(.title2)
-                .foregroundStyle(account.isActive ? .brand : .secondary)
-                .frame(width: 32, height: 32)
-
             // Account info
             VStack(alignment: .leading, spacing: 2) {
                 if editingAccountId == account.id {
@@ -72,7 +66,7 @@ struct AccountSwitcherView: View {
                             commitLabelEdit(account)
                         } label: {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(.brand)
                         }
                         .buttonStyle(.plain)
 
@@ -101,7 +95,7 @@ struct AccountSwitcherView: View {
                         .help("Edit label")
 
                         if account.isActive {
-                            Badge(text: String(localized: "Active", bundle: L10n.bundle), color: .green)
+                            Badge(text: String(localized: "Active", bundle: L10n.bundle), color: .brand, style: .solid)
                         }
                     }
                 }
@@ -139,7 +133,7 @@ struct AccountSwitcherView: View {
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.textSecondary)
             }
             .buttonStyle(.plain)
             .help("Re-authenticate (fix stale token)")
@@ -149,7 +143,7 @@ struct AccountSwitcherView: View {
             } label: {
                 Image(systemName: "trash")
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.usageCritical)
             }
             .buttonStyle(.plain)
             .help("Remove account")
@@ -201,10 +195,10 @@ struct AccountSwitcherView: View {
                 } label: {
                     Label("Login New Account", systemImage: "person.badge.plus")
                         .font(.subheadline.weight(.medium))
-                        .foregroundColor(AppStyle.buttonTextColor)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 8))
+                        .background(Color.brand, in: RoundedRectangle(cornerRadius: 8))
                 }
                 .buttonStyle(.plain)
 

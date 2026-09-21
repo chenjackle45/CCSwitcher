@@ -12,6 +12,7 @@ struct SettingsView: View {
     @AppStorage("appLanguage") private var appLanguage = "auto"
     @AppStorage("autoSwitchEnabled") private var autoSwitchEnabled = false
     @AppStorage("autoSwitchThreshold") private var autoSwitchThreshold = 90.0
+    @AppStorage(UsageDisplaySetting.showsRemainingKey) private var showsRemainingUsage = false
     @State private var launchAtLogin = false
 
     var body: some View {
@@ -102,6 +103,14 @@ struct SettingsView: View {
                     Text("Deutsch").tag("de")
                     Text("Français").tag("fr")
                 }
+                Picker("Usage numbers", selection: $showsRemainingUsage) {
+                    Text("Used").tag(false)
+                    Text("Remaining").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: showsRemainingUsage) { _, _ in
+                    appState.updateWidgetData()
+                }
                 .onChange(of: appLanguage) { _, newValue in
                     applyLanguage(newValue)
                 }
@@ -122,10 +131,6 @@ struct SettingsView: View {
 
     private var menuBarTab: some View {
         Form {
-            Section("Appearance") {
-                Toggle("Show head icon in menu bar", isOn: $menuBarConfig.showsHeadIcon)
-            }
-
             Section("Limit bars") {
                 Toggle("Customize limit bar colors", isOn: $menuBarConfig.customizesLimitBarColors)
 

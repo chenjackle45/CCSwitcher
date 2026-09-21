@@ -14,8 +14,10 @@
 "Extra usage" = "Extra usage";
 "On" = "On";
 "Off" = "Off";
-"ACTIVE" = "ACTIVE";
 "Turns" = "Turns";
 "Active" = "Active";
 "Lines" = "Lines";
 "Cost" = "Cost";
+"Weekly · Fable" = "Weekly · Fable";
+"Top to bottom: Session / Weekly / Fable" = "Top to bottom: Session / Weekly / Fable";
+"%lld%% left" = "%lld%% left";

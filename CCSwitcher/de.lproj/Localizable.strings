@@ -2,15 +2,11 @@
 "Usage" = "Nutzung";
 "Costs" = "Kosten";
 "Accounts" = "Konten";
-
-/* Main Menu */
 "Double Usage Active" = "Doppelte Nutzung aktiv";
 "No account connected" = "Kein Konto verbunden";
 "Refresh" = "Aktualisieren";
 "Settings" = "Einstellungen";
 "Quit" = "Beenden";
-
-/* Settings - General */
 "General" = "Allgemein";
 "About" = "Über";
 "Appearance" = "Erscheinungsbild";
@@ -22,22 +18,15 @@
 "5 minutes" = "5 Minuten";
 "10 minutes" = "10 Minuten";
 "Show account name in menu bar" = "Kontoname in der Menüleiste anzeigen";
-"Show head icon in menu bar" = "Kopf-Symbol in der Menüleiste anzeigen";
 "Show full email address" = "Vollständige E-Mail-Adresse anzeigen";
 "Launch at login" = "Beim Anmelden starten";
-
-/* Language */
 "Language" = "Sprache";
 "Automatic" = "Automatisch";
-
-/* Settings - About */
 "Claude Code Account Switcher" = "Claude Code Kontowechsler";
 "Version %@" = "Version %@";
 "Checking..." = "Überprüfe...";
 "Check for Updates" = "Nach Updates suchen";
 "Easily switch between Claude Code accounts and monitor usage." = "Einfach zwischen Claude Code Konten wechseln und die Nutzung überwachen.";
-
-/* Usage Dashboard */
 "Loading usage data..." = "Nutzungsdaten werden geladen...";
 "Usage data unavailable" = "Nutzungsdaten nicht verfügbar";
 "Today's API-Equivalent Cost" = "Heutige API-äquivalente Kosten";
@@ -55,13 +44,10 @@
 "Token expired. Switch to this account in Claude Code to refresh." = "Token abgelaufen. Wechseln Sie in Claude Code zu diesem Konto, um es zu aktualisieren.";
 "Session" = "Sitzung";
 "Weekly" = "Wöchentlich";
-"Limiting" = "Begrenzend";
 "Extra usage" = "Zusätzliche Nutzung";
 "On" = "An";
 "Off" = "Aus";
 "Resets in %@" = "Zurücksetzen in %@";
-
-/* Cost Detail */
 "Today" = "Heute";
 "Last 7 Days" = "Letzte 7 Tage";
 "Last 30 Days" = "Letzte 30 Tage";
@@ -79,8 +65,6 @@
 "Cache R" = "Cache L";
 "%lld sessions" = "%lld Sitzungen";
 "%@ tokens" = "%@ Token";
-
-/* Account Switcher */
 "No Accounts" = "Keine Konten";
 "Custom label" = "Eigene Bezeichnung";
 "Edit label" = "Bezeichnung bearbeiten";
@@ -90,12 +74,8 @@
 "Complete the login in your browser, then return here." = "Schließen Sie die Anmeldung im Browser ab und kehren Sie hierher zurück.";
 "Re-authenticate (fix stale token)" = "Erneut authentifizieren (abgelaufenes Token reparieren)";
 "Remove account" = "Konto entfernen";
-
-/* Usage Chart */
 "No Data" = "Keine Daten";
 "Usage data will appear here" = "Nutzungsdaten werden hier angezeigt";
-
-/* Update Checker */
 "A new version of CCSwitcher is available!" = "Eine neue Version von CCSwitcher ist verfügbar!";
 "Version %@ is available. You are currently running version %@.\n\nWould you like to download it now?" = "Version %1$@ ist verfügbar. Sie verwenden derzeit Version %2$@.\n\nMöchten Sie sie jetzt herunterladen?";
 "Download & Install" = "Herunterladen & Installieren";
@@ -116,8 +96,6 @@
 "Quit CCSwitcher" = "CCSwitcher beenden";
 "Download Failed" = "Download fehlgeschlagen";
 "OK" = "OK";
-
-/* AppState Errors */
 "Claude CLI not found" = "Claude CLI nicht gefunden";
 "Login did not complete" = "Anmeldung wurde nicht abgeschlossen";
 "Account already exists - credentials refreshed" = "Konto existiert bereits – Anmeldedaten aktualisiert";
@@ -132,12 +110,8 @@
 "Could not fetch usage: %@" = "Nutzung konnte nicht abgerufen werden: %@";
 "Claude reports %@, but the stored sign-in is still %@'s — another Claude Code session rewrote the identity. Switch accounts once to re-sync." = "Claude meldet %1$@, aber die gespeicherte Anmeldung gehört weiterhin %2$@ – eine andere Claude-Code-Sitzung hat die Identität überschrieben. Wechsle einmal das Konto, um neu zu synchronisieren.";
 "Can't tell which account the current sign-in belongs to. Switch accounts once to re-sync." = "Es lässt sich nicht feststellen, zu welchem Konto die aktuelle Anmeldung gehört. Wechsle einmal das Konto, um neu zu synchronisieren.";
-
-/* Promo */
 "%@ - %@ (Weekdays) & Weekends" = "%1$@ - %2$@ (Wochentags) & Wochenenden";
 "Double limits: 2 PM - 8 AM ET & Weekends" = "Doppelte Limits: 14–8 Uhr ET & Wochenenden";
-
-/* Menu Bar */
 "Menu bar" = "Menüleiste";
 "Menu bar modules" = "Menüleisten-Module";
 "Drag to reorder, toggle to enable. Disabled modules sit at the bottom." = "Zum Sortieren ziehen, zum Aktivieren umschalten. Deaktivierte Module stehen unten.";
@@ -161,8 +135,6 @@
 "Weekly — usage vs time (7d)" = "Woche — Nutzung vs. Zeit (7 Tage)";
 "The vertical line marks time elapsed in the window; fill past it means you're using faster than the clock." = "Die vertikale Linie zeigt die verstrichene Zeit; Füllung darüber hinaus = schneller als die Uhr verbraucht.";
 "Claude Fable 5 — most powerful model, the new flagship tier" = "Claude Fable 5 — leistungsstärkstes Modell, die neue Flaggschiff-Klasse";
-
-/* Auto-switch & rate-limit resilience */
 "Waiting for usage data..." = "Warte auf Nutzungsdaten...";
 "No active subscription on this account (OAuth not allowed)." = "Kein aktives Abonnement für dieses Konto (OAuth nicht erlaubt).";
 "Session expired. Re-authenticate (↻) to fix." = "Sitzung abgelaufen. Zur Behebung erneut authentifizieren (↻).";
@@ -173,16 +145,12 @@
 "Could not save the refreshed sign-in; will retry automatically." = "Aktualisierte Anmeldedaten konnten nicht gespeichert werden; es wird automatisch erneut versucht.";
 "Credential storage is temporarily unavailable. Try again shortly." = "Anmeldedaten-Speicher ist vorübergehend nicht verfügbar. Versuchen Sie es gleich erneut.";
 "Sign in to a Claude Code account to get started." = "Melden Sie sich bei einem Claude-Code-Konto an, um zu beginnen.";
-
-/* Weekly usage across accounts (#28) */
 "Weekly usage across accounts" = "Wochennutzung aller Konten";
 "%lld/%lld in this cycle" = "%lld/%lld in diesem Zyklus";
 "Total" = "Summe";
 "Average" = "Durchschnitt";
 "Sum of every account's 7-day utilization. Each account has its own weekly quota, so the total can exceed 100%." = "Summe der 7-Tage-Auslastung aller Konten. Jedes Konto hat ein eigenes Wochenkontingent, daher kann die Summe 100 % überschreiten.";
 "Average 7-day utilization across the accounts that reported data." = "Durchschnittliche 7-Tage-Auslastung der Konten mit Daten.";
-
-/* Auto-switch account list */
 "Accounts to switch to" = "Konten zum Wechseln";
 "Tick the accounts auto-switch may move to, and drag to set the order. Nothing ticked means every account is allowed." = "Konten ankreuzen, zu denen automatisch gewechselt werden darf, und per Ziehen sortieren. Nichts angekreuzt bedeutet: alle Konten sind erlaubt.";
 "Every account is allowed" = "Alle Konten sind erlaubt";
@@ -199,3 +167,7 @@
 "More apps at xueshi.dev" = "Weitere Apps auf xueshi.dev";
 "© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
 "A switch or a login is in progress; try removing the account again in a moment." = "Ein Wechsel oder eine Anmeldung läuft gerade; entfernen Sie das Konto gleich noch einmal.";
+"Usage numbers" = "Nutzungsanzeige";
+"Used" = "Verbraucht";
+"Remaining" = "Verbleibend";
+"%lld%% left" = "%lld %% übrig";

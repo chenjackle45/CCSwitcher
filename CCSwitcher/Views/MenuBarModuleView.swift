@@ -31,12 +31,18 @@ struct MenuBarModuleView: View {
                 .fixedSize()
         } else {
             VStack(alignment: .center, spacing: 0) {
-                Text(module.compactLabel)
-                    .font(.system(size: 8, weight: .semibold))
-                    .kerning(0.2)
-                    .foregroundStyle(.primary)
-                    .fixedSize()
-                    .frame(height: labelRowHeight)
+                HStack(spacing: 1) {
+                    Text(module.compactLabel)
+                        .kerning(0.2)
+                    if let symbol = module.compactLabelSymbol {
+                        Image(systemName: symbol)
+                            .font(.system(size: 6, weight: .bold))
+                    }
+                }
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(.primary)
+                .fixedSize()
+                .frame(height: labelRowHeight)
 
                 valueRow
                     .frame(height: valueRowHeight)

@@ -47,7 +47,7 @@ struct ClaudeCLITabView: View {
                     if let customError {
                         Label(customError, systemImage: "exclamationmark.triangle.fill")
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(.usageCritical)
                     } else if !customInput.isEmpty {
                         Text("Press Return to apply.")
                             .font(.caption)
@@ -57,7 +57,7 @@ struct ClaudeCLITabView: View {
 
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(.brand)
                     Text("Currently using: \(ClaudeService.shared.claudePath)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -85,8 +85,8 @@ struct ClaudeCLITabView: View {
                             .font(.caption2.weight(.semibold))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(.orange.opacity(0.2), in: Capsule())
-                            .foregroundStyle(.orange)
+                            .background(Color.usageWarning.opacity(0.2), in: Capsule())
+                            .foregroundStyle(.usageWarning)
                     }
                 }
             }

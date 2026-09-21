@@ -14,8 +14,10 @@
 "Extra usage" = "追加使用量";
 "On" = "オン";
 "Off" = "オフ";
-"ACTIVE" = "アクティブ";
 "Turns" = "ターン";
 "Active" = "アクティブ";
 "Lines" = "行数";
 "Cost" = "コスト";
+"Weekly · Fable" = "週間 · Fable";
+"Top to bottom: Session / Weekly / Fable" = "上から：セッション／週間／Fable";
+"%lld%% left" = "残り %lld%%";
