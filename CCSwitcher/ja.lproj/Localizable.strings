@@ -164,8 +164,9 @@
 "Only the account in use is ticked, so auto-switch has nowhere to go" = "使用中のアカウントだけが選ばれているため、自動切り替えの行き先がありません";
 "Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it." = "%@ を削除しましたが、他のアカウントに切り替えられませんでした。Claude CLI は削除したアカウントのままなので、手動で切り替えてください。";
 "The stored credentials for %@ are empty. Use re-authenticate to sign in again." = "%@ の保存された認証情報が空です。再認証でサインインし直してください。";
-"More apps at xueshi.dev" = "その他のアプリは xueshi.dev";
+"Based on CCSwitcher by Xueshi Qiao" = "Xueshi Qiao 氏の CCSwitcher をベースにしています";
 "© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
+"CCSwitcher+ changes © 2026 Tai-Cheng Chen" = "CCSwitcher+ の変更部分 © 2026 Tai-Cheng Chen";
 "A switch or a login is in progress; try removing the account again in a moment." = "切り替えまたはログインの実行中です。少し待ってからもう一度削除してください。";
 "Usage numbers" = "使用量の表示";
 "Used" = "使用済み";

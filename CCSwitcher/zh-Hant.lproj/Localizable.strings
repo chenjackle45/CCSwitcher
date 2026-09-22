@@ -142,8 +142,9 @@
 "Updated %@ ago" = "%@ 前更新";
 "Could not save the refreshed sign-in; will retry automatically." = "無法儲存重新整理後的登入憑證；會自動再試。";
 "Credential storage is temporarily unavailable. Try again shortly." = "憑證儲存暫時不可用。請稍後再試。";
-"More apps at xueshi.dev" = "作者的其他 App：xueshi.dev";
+"Based on CCSwitcher by Xueshi Qiao" = "以 Xueshi Qiao 的 CCSwitcher 為基礎";
 "© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
+"CCSwitcher+ changes © 2026 Tai-Cheng Chen" = "CCSwitcher+ 修改部分 © 2026 Tai-Cheng Chen";
 "Sign in to a Claude Code account to get started." = "登入一個 Claude Code 帳號即可開始。";
 "Weekly usage across accounts" = "各帳號週用量加總";
 "%lld/%lld in this cycle" = "%lld/%lld 在本週期內";

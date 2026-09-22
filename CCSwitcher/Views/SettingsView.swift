@@ -194,9 +194,12 @@ struct SettingsView: View {
                 .padding(.horizontal, 40)
 
             VStack(spacing: 2) {
-                Link("More apps at xueshi.dev", destination: URL(string: "https://xueshi.dev")!)
+                Link("Based on CCSwitcher by Xueshi Qiao", destination: URL(string: "https://github.com/XueshiQiao/CCSwitcher")!)
                     .font(.caption)
                 Text("© 2026 Xueshi Qiao")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Text("CCSwitcher+ changes © 2026 Tai-Cheng Chen")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

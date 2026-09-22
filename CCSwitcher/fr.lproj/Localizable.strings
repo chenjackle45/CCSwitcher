@@ -164,8 +164,9 @@
 "Only the account in use is ticked, so auto-switch has nowhere to go" = "Seul le compte en cours est coché : le changement automatique n'a aucune cible";
 "Removed %@, but could not switch to another account. The Claude CLI is still signed in to the removed account — switch manually to fix it." = "%@ a été supprimé, mais le passage à un autre compte a échoué. Claude CLI est toujours connecté au compte supprimé — changez manuellement pour corriger.";
 "The stored credentials for %@ are empty. Use re-authenticate to sign in again." = "Les identifiants enregistrés pour %@ sont vides. Utilisez la ré-authentification pour vous reconnecter.";
-"More apps at xueshi.dev" = "Plus d'apps sur xueshi.dev";
+"Based on CCSwitcher by Xueshi Qiao" = "Basé sur CCSwitcher de Xueshi Qiao";
 "© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
+"CCSwitcher+ changes © 2026 Tai-Cheng Chen" = "Modifications de CCSwitcher+ © 2026 Tai-Cheng Chen";
 "A switch or a login is in progress; try removing the account again in a moment." = "Un changement ou une connexion est en cours ; réessayez de supprimer le compte dans un instant.";
 "Usage numbers" = "Affichage de l'utilisation";
 "Used" = "Utilisé";

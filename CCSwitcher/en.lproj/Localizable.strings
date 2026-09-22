@@ -113,8 +113,9 @@
 "Can't tell which account the current sign-in belongs to. Switch accounts once to re-sync." = "Can't tell which account the current sign-in belongs to. Switch accounts once to re-sync.";
 "%@ - %@ (Weekdays) & Weekends" = "%@ - %@ (Weekdays) & Weekends";
 "Double limits: 2 PM - 8 AM ET & Weekends" = "Double limits: 2 PM - 8 AM ET & Weekends";
-"More apps at xueshi.dev" = "More apps at xueshi.dev";
+"Based on CCSwitcher by Xueshi Qiao" = "Based on CCSwitcher by Xueshi Qiao";
 "© 2026 Xueshi Qiao" = "© 2026 Xueshi Qiao";
+"CCSwitcher+ changes © 2026 Tai-Cheng Chen" = "CCSwitcher+ changes © 2026 Tai-Cheng Chen";
 "Menu bar" = "Menu bar";
 "Menu bar modules" = "Menu bar modules";
 "Drag to reorder, toggle to enable. Disabled modules sit at the bottom." = "Drag to reorder, toggle to enable. Disabled modules sit at the bottom.";
