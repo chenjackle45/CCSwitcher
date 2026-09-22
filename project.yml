@@ -83,6 +83,7 @@ targets:
       - path: CCSwitcher/Services/AutoSwitchEngine.swift
       - path: CCSwitcher/Services/SessionFileParser.swift
       - path: Shared/UsagePalette.swift
+      - path: CCSwitcher/Services/UsageFetchRotation.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nowaylm.ccswitcherplus.tests

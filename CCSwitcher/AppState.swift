@@ -123,11 +123,12 @@ final class AppState: ObservableObject {
     /// would each burst per-account usage requests and trip the endpoint's rate limit.
     private var isRefreshing = false
 
-    /// Round-robin cursor over non-active accounts: each refresh cycle fetches usage
-    /// for the active account plus ONE other, instead of all of them. The usage
-    /// endpoint's rate limit is tight and shared with every running Claude Code
-    /// session's own polling, so fewer requests per cycle beats a full sweep.
-    private var usageFetchCursor = 0
+    /// Who gets sampled each cycle: the active account plus ONE other in
+    /// rotation, instead of all of them. The usage endpoint's rate limit is
+    /// tight and shared with every running Claude Code session's own polling,
+    /// so fewer requests per cycle beats a full sweep — except for the first
+    /// cycle after launch, which fills the blank cards once. See the type.
+    private var usageFetchRotation = UsageFetchRotation()
 
     /// Per-account "leave it alone until" timestamps. The usage endpoint enforces a
     /// long-window per-account quota - observed Retry-After values run into tens of
@@ -1077,12 +1078,16 @@ final class AppState: ObservableObject {
     /// Observed Retry-After values run into tens of minutes (long-window per-account
     /// quota); retrying against those just burns more quota, so we rethrow instead
     /// and let the caller park the account until the deadline.
-    private func fetchUsageWithRetry(accessToken: String) async throws -> UsageAPIResponse {
+    /// `retryOn429: false` for the launch sweep. Every request in this loop is
+    /// made while holding the credential gate, which switching accounts also
+    /// needs; eight accounts each waiting out a Retry-After would hold it for
+    /// minutes. The 429 still parks the account, so the next cycle picks it up.
+    private func fetchUsageWithRetry(accessToken: String, retryOn429: Bool) async throws -> UsageAPIResponse {
         do {
             return try await claudeService.getUsageLimits(accessToken: accessToken)
         } catch ClaudeService.UsageError.rateLimited(let retryAfter) {
             let delay = retryAfter ?? 15
-            guard delay <= 30 else {
+            guard retryOn429, delay <= 30 else {
                 throw ClaudeService.UsageError.rateLimited(retryAfter: retryAfter)
             }
             // Floor of 3s: "Retry-After: 0" is a momentary burst limiter, and an
@@ -1192,17 +1197,11 @@ final class AppState: ObservableObject {
     }
 
     private func fetchAllAccountUsage(liveOwner: LiveCredentialOwner) async {
-        // Pick this cycle's targets: the active account (always) + one non-active
-        // account in round-robin order. Stale samples for the others are kept.
-        // Accounts parked by a server-given Retry-After deadline are skipped.
+        // Stale samples for the accounts not picked are kept; accounts parked
+        // by a server-given Retry-After deadline never reach the rotation.
         let now = Date()
         let eligible = accounts.filter { (usageRetryNotBefore[$0.id] ?? .distantPast) <= now }
-        let others = eligible.filter { !$0.isActive }
-        var targets = eligible.filter { $0.isActive }
-        if !others.isEmpty {
-            targets.append(others[usageFetchCursor % others.count])
-            usageFetchCursor += 1
-        }
+        let (targets, isLaunchSweep) = usageFetchRotation.next(eligible: eligible)
 
         // Only clear error state for the accounts we are about to sample;
         // the others keep both their stale usage and their error flags.
@@ -1249,7 +1248,7 @@ final class AppState: ObservableObject {
                 continue
             }
             do {
-                let usage = try await fetchUsageWithRetry(accessToken: accessToken)
+                let usage = try await fetchUsageWithRetry(accessToken: accessToken, retryOn429: !isLaunchSweep)
                 accountUsage[account.id] = usage
                 accountUsageSampledAt[account.id] = Date()
                 accountUsageErrors[account.id] = nil
