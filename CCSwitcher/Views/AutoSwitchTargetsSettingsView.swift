@@ -9,6 +9,7 @@ struct AutoSwitchTargetsSettingsView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject private var config = AutoSwitchConfig.shared
     @AppStorage("showFullEmail") private var showFullEmail = false
+    @AppStorage(UsageDisplaySetting.showsRemainingKey) private var showsRemainingUsage = false
 
     /// Selected accounts first, in their priority order; then the rest.
     private var orderedAccounts: [Account] {
@@ -110,15 +111,18 @@ struct AutoSwitchTargetsSettingsView: View {
 
             if let utilization {
                 UsageMiniBar(utilization: utilization)
-                Text("\(Int(utilization))%")
+                // minWidth, not a fixed width: "100% left" does not fit the
+                // 34pt that "100%" needed.
+                Text(UsagePalette.percentText(utilization, showsRemaining: showsRemainingUsage))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-                    .frame(width: 34, alignment: .trailing)
+                    .fixedSize()
+                    .frame(minWidth: 34, alignment: .trailing)
             } else {
                 Text("—")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.tertiary)
-                    .frame(width: 34, alignment: .trailing)
+                    .frame(minWidth: 34, alignment: .trailing)
             }
         }
         .padding(.vertical, 2)
@@ -138,14 +142,17 @@ struct AutoSwitchTargetsSettingsView: View {
 private struct UsageMiniBar: View {
     let utilization: Double
     @ObservedObject private var menuBarConfig = MenuBarConfig.shared
+    @AppStorage(UsageDisplaySetting.showsRemainingKey) private var showsRemainingUsage = false
 
     var body: some View {
         ZStack(alignment: .leading) {
             Capsule()
                 .fill(.progressTrack)
             Capsule()
+                // Colour from the raw utilization, length from whichever number
+                // is on show beside it.
                 .fill(menuBarConfig.limitBarColor(for: .weekly, utilization: utilization, context: .dashboard))
-                .frame(width: 70 * min(max(utilization, 0), 100) / 100)
+                .frame(width: 70 * (UsagePalette.barFill(utilization, showsRemaining: showsRemainingUsage) ?? 0))
         }
         .frame(width: 70, height: 5)
     }

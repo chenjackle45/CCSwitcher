@@ -46,6 +46,20 @@ enum UsagePalette {
         let used = Int(utilization)
         return showsRemaining ? "\(max(0, 100 - used))% left" : "\(used)%"
     }
+
+    /// How much of a bar to fill, 0...1, for whichever number the settings say
+    /// to show. nil when there is no reading, and callers must then draw an
+    /// empty track: a missing sample flipped into "100% remaining" is the one
+    /// wrong answer here — a full bar next to a "—" reads as plenty left.
+    ///
+    /// Colour is deliberately NOT derived from this: every surface keeps
+    /// feeding raw utilization to its own palette, so "nearly out" stays red
+    /// in both modes.
+    static func barFill(_ utilization: Double?, showsRemaining: Bool) -> Double? {
+        guard let utilization else { return nil }
+        let used = min(max(utilization, 0), 100)
+        return (showsRemaining ? 100 - used : used) / 100
+    }
 }
 
 /// UserDefaults key for the "usage numbers: used / remaining" setting.

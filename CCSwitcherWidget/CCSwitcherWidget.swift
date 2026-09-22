@@ -187,7 +187,11 @@ private struct SmallWidgetView: View {
     }
 
     private func compactUsageBar(label: LocalizedStringKey, utilization: Double?) -> some View {
+        // `pct` is only ever a colour input. The filled length goes through
+        // `barFill`, which keeps "no reading" as an empty track instead of
+        // turning it into a full "100% remaining" bar.
         let pct = utilization ?? 0
+        let fill = UsagePalette.barFill(utilization, showsRemaining: data.showsRemaining ?? false)
         return VStack(spacing: 3) {
             HStack {
                 Text(label)
@@ -203,9 +207,11 @@ private struct SmallWidgetView: View {
                     RoundedRectangle(cornerRadius: 2.5)
                         .fill(.quaternary)
                         .frame(height: 5)
-                    RoundedRectangle(cornerRadius: 2.5)
-                        .fill(colorForUtilization(pct, scheme))
-                        .frame(width: max(0, geo.size.width * min(pct / 100.0, 1.0)), height: 5)
+                    if let fill {
+                        RoundedRectangle(cornerRadius: 2.5)
+                            .fill(colorForUtilization(pct, scheme))
+                            .frame(width: geo.size.width * fill, height: 5)
+                    }
                 }
             }
             .frame(height: 5)
@@ -319,7 +325,9 @@ private struct MediumWidgetView: View {
     }
 
     private func usageBar(label: LocalizedStringKey, utilization: Double?, resetTime: String?) -> some View {
+        // `pct` is only a colour input; see `compactUsageBar`.
         let pct = utilization ?? 0
+        let fill = UsagePalette.barFill(utilization, showsRemaining: data.showsRemaining ?? false)
         return VStack(spacing: 3) {
             HStack {
                 Text(label)
@@ -340,9 +348,11 @@ private struct MediumWidgetView: View {
                     RoundedRectangle(cornerRadius: 2.5)
                         .fill(.quaternary)
                         .frame(height: 5)
-                    RoundedRectangle(cornerRadius: 2.5)
-                        .fill(colorForUtilization(pct, scheme))
-                        .frame(width: max(0, geo.size.width * min(pct / 100.0, 1.0)), height: 5)
+                    if let fill {
+                        RoundedRectangle(cornerRadius: 2.5)
+                            .fill(colorForUtilization(pct, scheme))
+                            .frame(width: geo.size.width * fill, height: 5)
+                    }
                 }
             }
             .frame(height: 5)
@@ -476,10 +486,11 @@ private struct LargeWidgetView: View {
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(.quaternary)
-                if let pct = utilization {
+                if let pct = utilization,
+                   let fill = UsagePalette.barFill(pct, showsRemaining: data.showsRemaining ?? false) {
                     Capsule()
                         .fill(colorForUtilization(pct, scheme))
-                        .frame(width: max(0, geo.size.width * min(pct / 100.0, 1.0)))
+                        .frame(width: geo.size.width * fill)
                 }
             }
         }
@@ -558,15 +569,19 @@ private struct CircleWidgetView: View {
     }
 
     private func ringStat(label: LocalizedStringKey, resetTime: String?, utilization: Double?, accent: Color) -> some View {
-        let pct = utilization ?? 0
+        // The arc follows the same setting as the number inside it; with no
+        // reading there is no arc, rather than a full ring around a "—".
+        let arc = UsagePalette.barFill(utilization, showsRemaining: data.showsRemaining ?? false)
         return VStack(spacing: 4) {
             ZStack {
                 Circle()
                     .stroke(.quaternary, lineWidth: 6)
-                Circle()
-                    .trim(from: 0, to: min(pct / 100.0, 1.0))
-                    .stroke(accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
+                if let arc {
+                    Circle()
+                        .trim(from: 0, to: arc)
+                        .stroke(accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
                 Text(utilization.map { UsagePalette.percentText($0, showsRemaining: data.showsRemaining ?? false) } ?? "—")
                     .font(.caption.weight(.semibold).monospacedDigit())
                     .lineLimit(1)

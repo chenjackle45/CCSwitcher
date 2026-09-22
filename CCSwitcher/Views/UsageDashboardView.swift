@@ -379,8 +379,10 @@ struct UsageDashboardView: View {
     // MARK: - Usage Row
 
     private func usageRow(title: String, resetText: String?, utilization: Double?, kind: LimitBarKind) -> some View {
-        let pct = utilization ?? 0
-        let fillColor = menuBarConfig.limitBarColor(for: kind, utilization: pct, context: .dashboard)
+        // Colour still comes from the raw utilization, so "nearly out" reads
+        // red in both display modes; only the filled length follows the setting.
+        let fillColor = menuBarConfig.limitBarColor(for: kind, utilization: utilization ?? 0, context: .dashboard)
+        let fill = UsagePalette.barFill(utilization, showsRemaining: showsRemainingUsage)
 
         return VStack(spacing: 5) {
             HStack {
@@ -402,9 +404,11 @@ struct UsageDashboardView: View {
                             .fill(.progressTrack)
                             .frame(height: 7)
 
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(fillColor)
-                            .frame(width: max(0, geo.size.width * min(pct / 100.0, 1.0)), height: 7)
+                        if let fill {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(fillColor)
+                                .frame(width: geo.size.width * fill, height: 7)
+                        }
                     }
                 }
                 .frame(height: 7)

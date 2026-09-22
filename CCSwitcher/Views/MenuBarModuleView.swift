@@ -174,7 +174,15 @@ struct MenuBarModuleView: View {
 /// `markerPercent` (0–100, optional) draws a thin vertical "pace" tick at the
 /// fraction of the rate-limit window already elapsed. Compare the fill to the
 /// tick: fill past the tick = burning faster than the clock; behind = slower.
+///
+/// Both follow the "used / remaining" setting together. They have to: at 70%
+/// used with 40% of the window gone, used-mode is 70 vs 40 (fill past tick)
+/// and remaining-mode is 30 vs 60 (fill behind tick) — same fact, and the
+/// comparison flips direction. Flipping only one of them would compare
+/// remaining quota against elapsed time, which means nothing.
 private struct UtilizationBar: View {
+    @AppStorage(UsageDisplaySetting.showsRemainingKey) private var showsRemainingUsage = false
+
     /// 0–100 percentage (as returned by the usage API), or nil if unavailable.
     let utilization: Double?
     /// 0–100 time-elapsed percentage for the pace tick, or nil to hide it.
@@ -186,14 +194,16 @@ private struct UtilizationBar: View {
     private let strokeWidth: CGFloat = 1
     private let innerInset: CGFloat = 1.5
 
-    private var clamped: Double { min(max((utilization ?? 0) / 100.0, 0), 1) }
+    private var clamped: Double {
+        UsagePalette.barFill(utilization, showsRemaining: showsRemainingUsage) ?? 0
+    }
 
     /// X offset (within the inset interior) of the pace tick, if shown.
     /// Suppressed when there's no usage data so a dashed "no data" bar can't
     /// sprout a stray tick.
     private var markerX: CGFloat? {
         guard utilization != nil, let m = markerPercent else { return nil }
-        let frac = min(max(m / 100.0, 0), 1)
+        let frac = UsagePalette.barFill(m, showsRemaining: showsRemainingUsage) ?? 0
         return innerInset + (trackWidth - innerInset * 2) * frac
     }
 
@@ -202,10 +212,15 @@ private struct UtilizationBar: View {
     // compositingGroup / blend — those are what broke it.
     var body: some View {
         ZStack(alignment: .leading) {
-            // Track — hollow capsule outline.
+            // Track — hollow capsule outline, in the limit colour rather than a
+            // fixed one. In "remaining" mode a spent quota draws a zero-length
+            // fill, so the fill can no longer carry the warning at the moment
+            // it matters most; the outline is always there. With stock colours
+            // that colour IS `.primary` until 90%, so the normal bar is
+            // unchanged — this only adds the red.
             Capsule()
                 .stroke(
-                    Color.primary.opacity(utilization == nil ? 0.25 : 0.55),
+                    fillColor.opacity(utilization == nil ? 0.25 : 0.55),
                     style: StrokeStyle(
                         lineWidth: strokeWidth,
                         dash: utilization == nil ? [2, 2] : []
