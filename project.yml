@@ -81,6 +81,7 @@ targets:
       - path: CCSwitcher/Models/UsageData.swift
       - path: CCSwitcher/Models/AutoSwitchConfig.swift
       - path: CCSwitcher/Services/AutoSwitchEngine.swift
+      - path: CCSwitcher/Services/SessionFileParser.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nowaylm.ccswitcherplus.tests
