@@ -26,6 +26,8 @@ struct UsageDashboardView: View {
     @EnvironmentObject private var menuBarConfig: MenuBarConfig
     @AppStorage("showFullEmail") private var showFullEmail = false
     @AppStorage(UsageDisplaySetting.showsRemainingKey) private var showsRemainingUsage = false
+    /// The card a dragged account would land on; its outline turns brand-coloured.
+    @State private var dropTargetId: UUID?
 
     var body: some View {
         ScrollView {
@@ -63,6 +65,14 @@ struct UsageDashboardView: View {
 
                     ForEach(appState.accounts) { account in
                         accountUsageCard(account: account, usage: appState.accountUsage[account.id])
+                            .draggable(account.id.uuidString)
+                            .dropDestination(for: String.self) { items, _ in
+                                dropTargetId = nil
+                                guard let dragged = items.first.flatMap(UUID.init(uuidString:)) else { return false }
+                                return withAnimation { appState.moveAccount(dragged, onto: account.id) }
+                            } isTargeted: { targeted in
+                                dropTargetId = targeted ? account.id : (dropTargetId == account.id ? nil : dropTargetId)
+                            }
                     }
                 }
 
@@ -292,7 +302,7 @@ struct UsageDashboardView: View {
                 .padding(.top, 4)
             }
         }
-        .cardStyle(fill: account.isActive ? .cardFill : .cardFill)
+        .cardStyle(fill: account.isActive ? .cardFill : .cardFill, border: dropTargetId == account.id ? .brand : .cardBorder)
         .sectionPadding()
     }
 

@@ -6,6 +6,8 @@ struct AccountSwitcherView: View {
     @AppStorage("showFullEmail") private var showFullEmail = false
     @State private var editingAccountId: UUID?
     @State private var editingLabel = ""
+    /// The card a dragged account would land on; its outline turns brand-coloured.
+    @State private var dropTargetId: UUID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -16,6 +18,14 @@ struct AccountSwitcherView: View {
                     } else {
                         ForEach(appState.accounts) { account in
                             accountRow(account)
+                                .draggable(account.id.uuidString)
+                                .dropDestination(for: String.self) { items, _ in
+                                    dropTargetId = nil
+                                    guard let dragged = items.first.flatMap(UUID.init(uuidString:)) else { return false }
+                                    return withAnimation { appState.moveAccount(dragged, onto: account.id) }
+                                } isTargeted: { targeted in
+                                    dropTargetId = targeted ? account.id : (dropTargetId == account.id ? nil : dropTargetId)
+                                }
                         }
                     }
                 }
@@ -152,9 +162,12 @@ struct AccountSwitcherView: View {
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(account.isActive ? .cardFillStrong : .clear)
-                .strokeBorder(.cardBorder, lineWidth: 1)
+                .strokeBorder(dropTargetId == account.id ? Color.brand : Color.cardBorder, lineWidth: 1)
                 .shadow(color: AppStyle.cardShadowColor, radius: AppStyle.cardShadowRadius, x: 0, y: AppStyle.cardShadowY)
         )
+        // Inactive cards have a clear fill, which is not hit-testable: without
+        // this only the text and buttons could start a drag or take a drop.
+        .contentShape(RoundedRectangle(cornerRadius: 10))
     }
 
     private func commitLabelEdit(_ account: Account) {

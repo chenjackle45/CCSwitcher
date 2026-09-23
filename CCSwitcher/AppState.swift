@@ -525,6 +525,21 @@ final class AppState: ObservableObject {
         log.info("[updateAccountLabel] Set label for \(account.email): \(trimmed ?? "nil")")
     }
 
+    /// Drag-to-reorder from the accounts or usage tab. Returns false when
+    /// nothing moved, so the drop is reported as rejected.
+    func moveAccount(_ id: UUID, onto targetId: UUID) -> Bool {
+        // A login holds an index into `accounts` across an await (the
+        // "account already exists" step); reordering under it would mark the
+        // wrong account active.
+        guard !isLoggingIn else { return false }
+        let reordered = AccountOrder.moving(accounts, id, onto: targetId)
+        guard reordered.map(\.id) != accounts.map(\.id) else { return false }
+        accounts = reordered
+        saveAccounts(refreshWidget: true)
+        log.info("[moveAccount] New order: \(self.accounts.map(\.email))")
+        return true
+    }
+
     func removeAccount(_ account: Account) async {
         log.info("[removeAccount] Removing account \(account.id)")
         // Same stand-down rule the other credential operations use: a removal
