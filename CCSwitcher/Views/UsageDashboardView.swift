@@ -327,7 +327,7 @@ struct UsageDashboardView: View {
     @ViewBuilder
     private func accountHeader(_ account: Account) -> some View {
         HStack(spacing: 8) {
-            Text(account.displayEmail(obfuscated: !showFullEmail))
+            Text(account.effectiveDisplayName(obfuscated: !showFullEmail))
                 .font(.subheadline.weight(.medium))
                 .lineLimit(1)
 
